@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   CalendarClock,
   ClipboardCheck,
@@ -39,11 +39,11 @@ export interface AppSidebarProps {
 }
 
 /**
- * Renders the collapsible left navigation sidebar.
- * @param props - Navigation state, counts, and view toggle callbacks
- * @returns Sidebar JSX element
+ * @description Renders the collapsible left navigation sidebar with zero inline arrow functions in loops.
+ * @param {AppSidebarProps} props - Navigation state, counts, and view toggle callbacks
+ * @returns {React.ReactElement} Memoized Sidebar JSX element
  */
-export function AppSidebar({
+export const AppSidebar = React.memo(function AppSidebar({
   activeView,
   isCollapsed,
   onSelectView,
@@ -62,6 +62,11 @@ export function AppSidebar({
     { id: 'vendors', label: 'Vendor & Logistics', subtitle: 'Directory & Red Flags', icon: ClipboardCheck, badgeText: `${vendorsCount}` },
   ];
 
+  const handleNavClick = useCallback((e: React.MouseEvent<HTMLButtonElement>): void => {
+    const view = e.currentTarget.dataset.view as ActiveView | undefined;
+    if (view) onSelectView(view);
+  }, [onSelectView]);
+
   return (
     <aside
       aria-label="Primary Workspace Navigation"
@@ -78,12 +83,8 @@ export function AppSidebar({
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               </div>
               <div className="truncate">
-                <span className="text-xs font-semibold tracking-tight text-slate-900 block leading-none">
-                  Atelier Studio
-                </span>
-                <span className="text-[10px] font-mono text-slate-600 uppercase tracking-wider">
-                  Event Architect
-                </span>
+                <span className="text-xs font-semibold tracking-tight text-slate-900 block leading-none">Atelier Studio</span>
+                <span className="text-[10px] font-mono text-slate-600 uppercase tracking-wider">Event Architect</span>
               </div>
             </div>
           )}
@@ -98,7 +99,7 @@ export function AppSidebar({
           </button>
         </div>
 
-        <nav className="p-2.5 space-y-1">
+        <nav className="p-2.5 space-y-1" aria-label="Section Quick Links">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = activeView === item.id;
@@ -106,8 +107,9 @@ export function AppSidebar({
               <button
                 key={item.id}
                 type="button"
+                data-view={item.id}
                 data-testid={`nav-btn-${item.id}`}
-                onClick={() => onSelectView(item.id)}
+                onClick={handleNavClick}
                 title={isCollapsed ? item.label : undefined}
                 aria-current={active ? 'page' : undefined}
                 className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer ${
@@ -119,16 +121,12 @@ export function AppSidebar({
                   {!isCollapsed && (
                     <div className="truncate">
                       <span className="text-xs font-medium block truncate">{item.label}</span>
-                      <span className={`text-[10px] block truncate ${active ? 'text-slate-300' : 'text-slate-600'}`}>
-                        {item.subtitle}
-                      </span>
+                      <span className={`text-[10px] block truncate ${active ? 'text-slate-300' : 'text-slate-600'}`}>{item.subtitle}</span>
                     </div>
                   )}
                 </div>
                 {!isCollapsed && (
-                  <span className={`text-[10px] font-mono tabular-nums shrink-0 ${active ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {item.badgeText}
-                  </span>
+                  <span className={`text-[10px] font-mono tabular-nums shrink-0 ${active ? 'text-slate-300' : 'text-slate-600'}`}>{item.badgeText}</span>
                 )}
               </button>
             );
@@ -137,26 +135,15 @@ export function AppSidebar({
       </div>
 
       <div className="p-3 border-t border-slate-200/80 space-y-2">
-        <button
-          type="button"
-          data-testid="sidebar-copilot-btn"
-          onClick={onOpenCoPilot}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-        >
+        <button type="button" data-testid="sidebar-copilot-btn" onClick={onOpenCoPilot} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-medium hover:bg-slate-50 cursor-pointer">
           <MessageSquareText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
           {!isCollapsed && <span>Ask Event Co-Pilot</span>}
         </button>
-
-        <button
-          type="button"
-          data-testid="sidebar-export-btn"
-          onClick={onOpenExport}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-200/70 text-slate-800 text-xs font-medium hover:bg-slate-200 transition-colors cursor-pointer"
-        >
+        <button type="button" data-testid="sidebar-export-btn" onClick={onOpenExport} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-200/70 text-slate-800 text-xs font-medium hover:bg-slate-200 cursor-pointer">
           <FileDown className="w-3.5 h-3.5 shrink-0" />
           {!isCollapsed && <span>Export Plan (.MD / PDF)</span>}
         </button>
       </div>
     </aside>
   );
-}
+});

@@ -3,14 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { CATEGORY_COLORS, MAX_BUDGET, MIN_BUDGET } from '../constants/event.constants';
-import {
-  BudgetCategoryItem,
-  BudgetSummary,
-  EventConfig,
-} from '../types/event.types';
-import { clampNumber, formatCurrency } from '../utils/eventLogic';
+import React, { useCallback } from 'react';
+import { CATEGORY_COLORS, MAX_BUDGET_LIMIT, MIN_BUDGET } from '../constants/event.constants';
+import { BudgetCategoryItem, BudgetSummary, EventConfig } from '../types/event.types';
+import { formatCurrency } from '../utils/domain.utils';
+import { clampNumber } from '../utils/security.utils';
 
 export interface BudgetKpiStripProps {
   readonly config: EventConfig;
@@ -20,17 +17,20 @@ export interface BudgetKpiStripProps {
 }
 
 /**
- * Renders the 4 KPI metric cards and proportional stacked allocation bar for `BudgetView`.
- *
- * @param props - Event config, categories, computed summary, and budget update handler
- * @returns KPI strip JSX element
+ * @description Renders the 4 KPI metric cards (including 10% Contingency Reserve) and stacked allocation bar.
+ * @param {BudgetKpiStripProps} props - Event config, categories, computed summary, and budget update handler
+ * @returns {React.ReactElement} Memoized KPI strip JSX element
  */
-export function BudgetKpiStrip({
+export const BudgetKpiStrip = React.memo(function BudgetKpiStrip({
   config,
   categories,
   summary,
   onUpdateTotalBudget,
 }: BudgetKpiStripProps): React.ReactElement {
+  const handleBudgetInput = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
+    onUpdateTotalBudget(clampNumber(e.target.value, MIN_BUDGET, MAX_BUDGET_LIMIT));
+  }, [onUpdateTotalBudget]);
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
@@ -42,28 +42,29 @@ export function BudgetKpiStrip({
             <span className="text-xs font-mono text-slate-600">{config.currency}</span>
             <input
               id="master-budget-input"
-              data-testid="master-budget-input"
+              data-testid="input-total-budget"
               type="number"
               min={MIN_BUDGET}
-              max={MAX_BUDGET}
+              max={MAX_BUDGET_LIMIT}
               step={500}
               value={config.totalBudget}
-              onChange={(e) =>
-                onUpdateTotalBudget(
-                  clampNumber(e.target.value, MIN_BUDGET, MAX_BUDGET, MIN_BUDGET)
-                )
-              }
+              aria-invalid={false}
+              aria-describedby="desc-master-budget"
+              onChange={handleBudgetInput}
               className="w-full text-xl font-semibold text-slate-900 font-mono tabular-nums bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:border-slate-900"
             />
           </div>
-          <p className="text-[11px] text-slate-600 mt-1 font-mono tabular-nums">
-            {formatCurrency(Math.round(config.totalBudget / Math.max(1, config.guestCount)), config.currency)} per guest
+          <p id="desc-master-budget" className="text-[11px] text-slate-600 mt-1 font-mono tabular-nums">
+            10% Contingency Reserve:{' '}
+            <strong data-testid="metric-contingency-reserve">
+              {formatCurrency(summary.contingencyReserve, config.currency)}
+            </strong>
           </p>
         </div>
 
         <div className="p-4 rounded-lg border border-slate-200/80 bg-slate-50/50">
           <span className="text-xs font-medium text-slate-600">Total Estimated Allocation</span>
-          <div className="text-2xl font-semibold text-slate-900 font-mono tabular-nums mt-1.5" data-testid="kpi-total-estimated">
+          <div className="text-2xl font-semibold text-slate-900 font-mono tabular-nums mt-1.5" data-testid="metric-total-estimated">
             {formatCurrency(summary.totalEstimated, config.currency)}
           </div>
           <p className={`text-[11px] mt-1 font-mono tabular-nums ${summary.unallocatedBudget >= 0 ? 'text-slate-600' : 'text-rose-600 font-medium'}`}>
@@ -75,7 +76,7 @@ export function BudgetKpiStrip({
 
         <div className="p-4 rounded-lg border border-slate-200/80 bg-slate-50/50">
           <span className="text-xs font-medium text-slate-600">Actual Committed / Spent</span>
-          <div className="text-2xl font-semibold text-slate-900 font-mono tabular-nums mt-1.5" data-testid="kpi-total-actual">
+          <div className="text-2xl font-semibold text-slate-900 font-mono tabular-nums mt-1.5" data-testid="metric-total-actual">
             {formatCurrency(summary.totalActual, config.currency)}
           </div>
           <p className="text-[11px] text-slate-600 mt-1 font-mono tabular-nums">
@@ -85,7 +86,10 @@ export function BudgetKpiStrip({
 
         <div className="p-4 rounded-lg border border-slate-200/80 bg-slate-50/50">
           <span className="text-xs font-medium text-slate-600">Remaining Available</span>
-          <div className={`text-2xl font-semibold font-mono tabular-nums mt-1.5 ${summary.remainingFromTotal >= 0 ? 'text-emerald-700' : 'text-rose-600'}`} data-testid="kpi-remaining-budget">
+          <div
+            className={`text-2xl font-semibold font-mono tabular-nums mt-1.5 ${summary.remainingFromTotal >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}
+            data-testid="metric-remaining-budget"
+          >
             {formatCurrency(summary.remainingFromTotal, config.currency)}
           </div>
           <p className="text-[11px] text-slate-600 mt-1 font-mono tabular-nums">
@@ -110,4 +114,4 @@ export function BudgetKpiStrip({
       </div>
     </>
   );
-}
+});

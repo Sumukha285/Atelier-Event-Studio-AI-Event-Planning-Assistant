@@ -12,7 +12,7 @@ import {
   ItineraryItem,
   VendorItem,
 } from '../types/event.types';
-import { computeBudgetSummary, formatCurrency } from '../utils/eventLogic';
+import { computeBudgetSummary, formatCurrency, resolveEventTypeLabel } from '../utils/eventLogic';
 
 /**
  * Generates 3 deterministic fallback concept packages tailored to the user's `EventConfig`.
@@ -109,7 +109,7 @@ export function buildFallbackTimeline(config: EventConfig): {
   readonly countdownTasks: CountdownTask[];
   readonly itinerary: ItineraryItem[];
 } {
-  const preset = EVENT_PRESETS[config.eventType] ?? EVENT_PRESETS.Wedding;
+  const preset = EVENT_PRESETS[resolveEventTypeLabel(config.eventType)];
   const stamp = Date.now();
   return {
     countdownTasks: preset.countdownTasks.map((t, idx) => ({ ...t, id: `task-${stamp}-${idx}` })),
@@ -123,7 +123,7 @@ export function buildFallbackTimeline(config: EventConfig): {
  * @returns Array of `VendorItem` entries
  */
 export function buildFallbackVendors(config: EventConfig): VendorItem[] {
-  const preset = EVENT_PRESETS[config.eventType] ?? EVENT_PRESETS.Wedding;
+  const preset = EVENT_PRESETS[resolveEventTypeLabel(config.eventType)];
   const ratio = config.totalBudget / (preset.config.totalBudget || 1);
   return preset.vendors.map((v, idx) => ({
     ...v,

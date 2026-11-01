@@ -4,9 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { MAX_BUDGET } from '../constants/event.constants';
+import { MAX_BUDGET_LIMIT } from '../constants/event.constants';
 import { EventConfig, VendorItem, VendorPriority } from '../types/event.types';
-import { clampNumber, sanitizeText } from '../utils/eventLogic';
+import { clampNumber, sanitizeText } from '../utils/security.utils';
 
 export interface AddVendorFormProps {
   readonly config: EventConfig;
@@ -14,12 +14,11 @@ export interface AddVendorFormProps {
 }
 
 /**
- * Renders the inline Add Vendor form inside `VendorView`.
- *
- * @param props - Event configuration and vendor creation callback
- * @returns AddVendorForm JSX element
+ * @description Renders the inline Add Vendor form inside `VendorSection`.
+ * @param {AddVendorFormProps} props - Event configuration and vendor creation callback
+ * @returns {React.ReactElement} Memoized AddVendorForm JSX element
  */
-export function AddVendorForm({
+export const AddVendorForm = React.memo(function AddVendorForm({
   config,
   onAddVendor,
 }: AddVendorFormProps): React.ReactElement {
@@ -36,12 +35,11 @@ export function AddVendorForm({
     onAddVendor({
       id: `vendor-custom-${Date.now()}`,
       category: cleanCat,
-      roleDescription:
-        sanitizeText(newRole, 160) || 'Custom event supplier & logistics service',
+      roleDescription: sanitizeText(newRole, 160) || 'Custom event supplier & logistics service',
       priority: newPriority,
       bookingStatus: 'Researching',
       vendorName: sanitizeText(newVendorName, 80) || 'Unassigned Supplier',
-      quotedPrice: Math.round(clampNumber(newQuote, 0, MAX_BUDGET, 1000)),
+      quotedPrice: Math.round(clampNumber(newQuote, 0, MAX_BUDGET_LIMIT)),
       contactInfo: '',
       vettingQuestions: [
         `What is the exact arrival, setup, and strike window included for ${config.location}?`,
@@ -61,63 +59,33 @@ export function AddVendorForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mt-5 p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-1 md:grid-cols-5 gap-3"
-    >
-      <input
-        type="text"
-        data-testid="new-vendor-category-input"
-        placeholder="Category (e.g., Lighting & Rigging)"
-        value={newCategory}
-        onChange={(e) => setNewCategory(e.target.value)}
-        maxLength={80}
-        className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-900"
-      />
-      <input
-        type="text"
-        placeholder="Role / Deliverable scope"
-        value={newRole}
-        onChange={(e) => setNewRole(e.target.value)}
-        maxLength={160}
-        className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-900"
-      />
-      <input
-        type="text"
-        placeholder="Vendor Name (optional)"
-        value={newVendorName}
-        onChange={(e) => setNewVendorName(e.target.value)}
-        maxLength={80}
-        className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-900"
-      />
-      <input
-        type="number"
-        min={0}
-        max={MAX_BUDGET}
-        step={100}
-        value={newQuote}
-        onChange={(e) => setNewQuote(Number(e.target.value))}
-        className="px-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-md text-slate-900"
-      />
+    <form onSubmit={handleSubmit} className="mt-5 p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-1 md:grid-cols-5 gap-3">
+      <div>
+        <label htmlFor="new-vendor-cat" className="sr-only">Vendor Category</label>
+        <input id="new-vendor-cat" type="text" data-testid="new-vendor-category-input" placeholder="Category (e.g., Lighting)" value={newCategory} aria-invalid={false} aria-describedby="add-vendor-desc" onChange={(e) => setNewCategory(e.target.value)} maxLength={80} className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-900" />
+      </div>
+      <div>
+        <label htmlFor="new-vendor-role" className="sr-only">Role Scope</label>
+        <input id="new-vendor-role" type="text" placeholder="Role / Deliverable scope" value={newRole} aria-invalid={false} aria-describedby="add-vendor-desc" onChange={(e) => setNewRole(e.target.value)} maxLength={160} className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-900" />
+      </div>
+      <div>
+        <label htmlFor="new-vendor-name" className="sr-only">Vendor Name</label>
+        <input id="new-vendor-name" type="text" placeholder="Vendor Name (optional)" value={newVendorName} aria-invalid={false} aria-describedby="add-vendor-desc" onChange={(e) => setNewVendorName(e.target.value)} maxLength={80} className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-900" />
+      </div>
+      <div>
+        <label htmlFor="new-vendor-quote" className="sr-only">Quoted Price</label>
+        <input id="new-vendor-quote" type="number" min={0} max={MAX_BUDGET_LIMIT} step={100} value={newQuote} aria-invalid={false} aria-describedby="add-vendor-desc" onChange={(e) => setNewQuote(Number(e.target.value))} className="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-md text-slate-900" />
+      </div>
       <div className="flex gap-2">
-        <select
-          aria-label="Vendor Priority"
-          value={newPriority}
-          onChange={(e) => setNewPriority(e.target.value as VendorPriority)}
-          className="px-2 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-800 flex-1"
-        >
+        <label htmlFor="new-vendor-priority" className="sr-only">Vendor Priority</label>
+        <select id="new-vendor-priority" value={newPriority} aria-invalid={false} aria-describedby="add-vendor-desc" onChange={(e) => setNewPriority(e.target.value as VendorPriority)} className="px-2 py-2 text-xs bg-white border border-slate-300 rounded-md text-slate-800 flex-1">
           <option value="Essential">Essential</option>
           <option value="Recommended">Recommended</option>
           <option value="Optional">Optional</option>
         </select>
-        <button
-          type="submit"
-          data-testid="save-new-vendor-btn"
-          className="px-3 py-2 rounded-md bg-slate-900 text-white text-xs font-medium cursor-pointer"
-        >
-          Save
-        </button>
+        <span id="add-vendor-desc" className="sr-only">Add a custom supplier category to the vendor directory.</span>
+        <button type="submit" data-testid="save-new-vendor-btn" className="px-3 py-2 rounded-md bg-slate-900 text-white text-xs font-medium cursor-pointer">Save</button>
       </div>
     </form>
   );
-}
+});

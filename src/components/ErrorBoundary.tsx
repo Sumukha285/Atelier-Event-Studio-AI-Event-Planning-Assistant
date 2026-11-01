@@ -18,46 +18,39 @@ export interface ErrorBoundaryState {
 }
 
 /**
- * Class-based React Error Boundary that catches runtime rendering faults and offers a recovery reset.
+ * @description Production React Error Boundary that catches runtime rendering faults and offers a state reset button.
  */
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
     errorMessage: '',
   };
 
   /**
-   * Updates boundary state when a descendant component throws during rendering.
-   *
-   * @param error - Thrown error instance
-   * @returns Next `ErrorBoundaryState`
+   * @description Updates boundary state when a descendant component throws during rendering.
+   * @param {Error} error - Thrown error instance
+   * @returns {ErrorBoundaryState} Next `ErrorBoundaryState`
    */
   public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
-      errorMessage:
-        error?.message || 'An unexpected rendering issue occurred.',
+      errorMessage: error?.message || 'An unexpected rendering issue occurred.',
     };
   }
 
   /**
-   * Lifecycle hook invoked after a descendant throws an error.
-   *
-   * @param _error - Caught error
-   * @param _errorInfo - React component stack trace
-   * @returns Void
+   * @description Lifecycle hook invoked after a descendant throws an error.
+   * @param {Error} _error - Caught error
+   * @param {ErrorInfo} _errorInfo - React component stack trace
+   * @returns {void}
    */
   public componentDidCatch(_error: Error, _errorInfo: ErrorInfo): void {
-    // Structured error state is already captured in getDerivedStateFromError
+    // Error details captured via getDerivedStateFromError
   }
 
   /**
-   * Clears persisted application state in `localStorage` and resets the error boundary.
-   *
-   * @returns Void
+   * @description Clears persisted application state in `localStorage` and resets the error boundary.
+   * @returns {void}
    */
   private handleResetApplicationState = (): void => {
     try {
@@ -74,9 +67,8 @@ export class ErrorBoundary extends Component<
   };
 
   /**
-   * Renders either the protected child tree or the recovery fallback card.
-   *
-   * @returns React element tree
+   * @description Renders either the protected child tree or the recovery fallback card.
+   * @returns {ReactNode} React element tree
    */
   public render(): ReactNode {
     if (!this.state.hasError) {
@@ -99,21 +91,17 @@ export class ErrorBoundary extends Component<
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">
             Atelier Event Studio encountered an unexpected rendering fault:{' '}
-            <span className="font-mono text-xs text-slate-800">
-              {this.state.errorMessage}
-            </span>
+            <span className="font-mono text-xs text-slate-800">{this.state.errorMessage}</span>
           </p>
-          <div className="pt-2">
-            <button
-              type="button"
-              data-testid="error-boundary-reset"
-              onClick={this.handleResetApplicationState}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" aria-hidden="true" />
-              <span>Reset Application State</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            data-testid="error-boundary-reset"
+            onClick={this.handleResetApplicationState}
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" aria-hidden="true" />
+            <span>Reset Application State</span>
+          </button>
         </div>
       </div>
     );

@@ -10,37 +10,35 @@ import {
   BudgetCategoryItem,
   EventPlanState,
   EventType,
+  EventTypeLabel,
 } from '../types/event.types';
-import { calculateBudgetAllocation, formatCurrency } from '../utils/eventLogic';
+import { calculateBudgetAllocation, formatCurrency } from '../utils/domain.utils';
+import { resolveEventTypeLabel, roundToDollar } from '../utils/security.utils';
 
-export const EVENT_PRESETS: Readonly<Record<EventType, EventPresetBundle>> = {
+export const EVENT_PRESETS: Readonly<Record<EventTypeLabel, EventPresetBundle>> = {
   Wedding: WEDDING_PRESET,
   Birthday: BIRTHDAY_PRESET,
   'Community Event': COMMUNITY_PRESET,
 };
 
+const INITIAL_VENUE_SPENT_RATIO = 0.95;
+const INITIAL_CATERING_SPENT_RATIO = 0.50;
+
 /**
- * Creates a clean initial `EventPlanState` seeded from the specified `EventType` preset.
- *
- * @param eventType - Selected event archetype ('Wedding', 'Birthday', or 'Community Event')
- * @returns Hydrated initial `EventPlanState`
+ * @description Creates a clean initial `EventPlanState` seeded from the specified `EventType` preset.
+ * @param {EventType} [eventType='Wedding'] - Selected event archetype
+ * @returns {EventPlanState} Hydrated initial `EventPlanState`
  */
 export function createInitialEventState(
   eventType: EventType = 'Wedding'
 ): EventPlanState {
-  const preset = EVENT_PRESETS[eventType] ?? EVENT_PRESETS.Wedding;
-  const allocated = calculateBudgetAllocation(
-    preset.config.totalBudget,
-    eventType
-  );
+  const canonical = resolveEventTypeLabel(eventType);
+  const preset = EVENT_PRESETS[canonical];
+  const allocated = calculateBudgetAllocation(preset.config.totalBudget, canonical);
 
   const budgetCategories: BudgetCategoryItem[] = allocated.map((item, idx) => {
-    if (idx === 0) {
-      return { ...item, actualSpent: Math.round(item.estimatedCost * 0.95) };
-    }
-    if (idx === 1) {
-      return { ...item, actualSpent: Math.round(item.estimatedCost * 0.5) };
-    }
+    if (idx === 0) return { ...item, actualSpent: roundToDollar(item.estimatedCost * INITIAL_VENUE_SPENT_RATIO) };
+    if (idx === 1) return { ...item, actualSpent: roundToDollar(item.estimatedCost * INITIAL_CATERING_SPENT_RATIO) };
     return item;
   });
 

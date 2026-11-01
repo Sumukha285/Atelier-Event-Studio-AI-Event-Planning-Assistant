@@ -4,11 +4,12 @@
  */
 
 import {
+  CENTS_MULTIPLIER,
   CURRENCY_CODES,
   DEFAULT_BUDGET,
   DEFAULT_GUESTS,
-  EVENT_TYPES,
-  MAX_BUDGET,
+  EVENT_TYPE_CODE_TO_LABEL,
+  MAX_BUDGET_LIMIT,
   MAX_GUESTS,
   MAX_LOCATION_LENGTH,
   MAX_NOTES_LENGTH,
@@ -19,17 +20,31 @@ import {
   MIN_GUESTS,
   SETTING_TYPES,
 } from '../constants/event.constants';
-import { CurrencyCode, EventConfig, EventPlanState, EventType, SettingType } from '../types/event.types';
+import {
+  CurrencyCode,
+  EventConfig,
+  EventPlanState,
+  EventTypeLabel,
+  isRecordObject,
+  isValidBlueprint,
+  SettingType,
+} from '../types/event.types';
+
+const DEFAULT_DAYS_AHEAD = 90;
+const MS_PER_DAY = 86400000;
+const HASH_SEED = 5381;
+const HASH_MULTIPLIER = 33;
 
 /**
- * Strips HTML tags, script protocols, and ASCII control characters from untrusted input.
- * @param input - Raw user input of any type
- * @param maxLength - Maximum allowed character length
- * @returns Sanitized plain-text string
+ * @description Strips HTML tags, script protocols, and ASCII control characters from untrusted input.
+ * @param {unknown} input - Raw user input string or unknown value
+ * @param {number} [maxLength=MAX_TEXT_LENGTH] - Maximum character length to retain
+ * @returns {string} Sanitized plain-text string
  */
 export function sanitizeText(input: unknown, maxLength: number = MAX_TEXT_LENGTH): string {
   if (typeof input !== 'string') return '';
   return input
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
     .replace(/<[^>]*>?/gm, '')
     .replace(/javascript:/gi, '')
     .replace(/data:/gi, '')
@@ -39,46 +54,47 @@ export function sanitizeText(input: unknown, maxLength: number = MAX_TEXT_LENGTH
 }
 
 /**
- * Clamps a numeric input within `[min, max]`, returning `fallback` for NaN or non-finite values.
- * @param value - Candidate numeric value
- * @param min - Minimum bound
- * @param max - Maximum bound
- * @param fallback - Default value when input is not finite
- * @returns Clamped number
+ * @description Clamps a numeric value within `[min, max]`, guarding against NaN, Infinity, and out-of-range inputs.
+ * @param {unknown} val - Candidate numeric value
+ * @param {number} min - Minimum allowed bound
+ * @param {number} max - Maximum allowed bound
+ * @returns {number} Clamped finite number
  */
-export function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
+export function clampNumber(val: unknown, min: number, max: number): number {
+  const parsed = typeof val === 'number' ? val : Number(val);
+  if (!Number.isFinite(parsed)) return Math.max(0, min);
   return Math.min(max, Math.max(min, parsed));
 }
 
 /**
- * Rounds a monetary float using integer-cent arithmetic (`Math.round(amount * 100) / 100`).
- * @param amount - Monetary amount in currency units
- * @returns Cent-accurate monetary value
+ * @description Performs integer-cent rounding (`Math.round(amount * 100) / 100`) to prevent IEEE 754 floating-point drift.
+ * @param {number} amount - Monetary value in currency units
+ * @returns {number} Cent-accurate monetary value
  */
-export function roundToCents(amount: number): number {
-  if (!Number.isFinite(amount)) return 0;
-  return Math.round(amount * 100) / 100;
+export function toSafeCurrencyCents(amount: number): number {
+  if (!Number.isFinite(amount) || amount < 0) return 0;
+  return Math.round(amount * CENTS_MULTIPLIER) / CENTS_MULTIPLIER;
 }
 
+export const roundToCents = toSafeCurrencyCents;
+
 /**
- * Rounds a monetary value to the nearest whole currency unit using integer-cent precision first.
- * @param amount - Monetary amount
- * @returns Whole-dollar integer amount
+ * @description Rounds a monetary value to the nearest whole currency integer using safe cent arithmetic.
+ * @param {number} amount - Monetary value
+ * @returns {number} Whole-dollar integer amount
  */
 export function roundToDollar(amount: number): number {
-  return Math.round(roundToCents(amount));
+  return Math.round(toSafeCurrencyCents(amount));
 }
 
 /**
- * Wraps user-supplied text inside an XML sandbox tag and escapes XML delimiters to prevent prompt injection.
- * @param tagName - Alphanumeric XML tag identifier
- * @param content - User string to sandbox
- * @returns XML-delimited safe prompt block
+ * @description Wraps user-supplied text inside an XML sandbox tag and escapes delimiters to mitigate prompt injection.
+ * @param {string} tag - Alphanumeric XML tag name
+ * @param {string} content - Untrusted user content to enclose
+ * @returns {string} XML-sandboxed string
  */
-export function wrapXmlSandbox(tagName: string, content: string): string {
-  const safeTag = tagName.replace(/[^a-zA-Z0-9_]/g, '') || 'user_input';
+export function wrapUserPromptXml(tag: string, content: string): string {
+  const safeTag = tag.replace(/[^a-zA-Z0-9_]/g, '') || 'user_input';
   const escaped = sanitizeText(content, MAX_NOTES_LENGTH)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -86,83 +102,93 @@ export function wrapXmlSandbox(tagName: string, content: string): string {
   return `<${safeTag}>${escaped}</${safeTag}>`;
 }
 
+export const wrapXmlSandbox = wrapUserPromptXml;
+
 /**
- * Sanitizes and clamps all fields of an `EventConfig` object.
- * @param config - Raw event configuration
- * @returns Sanitized and clamped `EventConfig`
+ * @description Resolves any `EventType` code or label to its canonical display label.
+ * @param {unknown} value - Candidate event type
+ * @returns {EventTypeLabel} Canonical event type label
+ */
+export function resolveEventTypeLabel(value: unknown): EventTypeLabel {
+  const key = String(value ?? 'Wedding') as keyof typeof EVENT_TYPE_CODE_TO_LABEL;
+  return EVENT_TYPE_CODE_TO_LABEL[key] ?? 'Wedding';
+}
+
+/**
+ * @description Sanitizes and clamps all fields of an `EventConfig` object.
+ * @param {EventConfig} config - Raw event configuration
+ * @returns {EventConfig} Sanitized and clamped `EventConfig`
  */
 export function sanitizeEventConfig(config: EventConfig): EventConfig {
-  const eventType: EventType = EVENT_TYPES.includes(config.eventType) ? config.eventType : 'Wedding';
+  const eventType = resolveEventTypeLabel(config.eventType);
   const setting: SettingType = SETTING_TYPES.includes(config.setting) ? config.setting : 'Outdoor';
   const currency: CurrencyCode = CURRENCY_CODES.includes(config.currency) ? config.currency : 'USD';
+  const fallbackDate = new Date(Date.now() + DEFAULT_DAYS_AHEAD * MS_PER_DAY).toISOString().split('T')[0];
   return {
     eventType,
     eventName: sanitizeText(config.eventName, MAX_TITLE_LENGTH) || 'Untitled Event',
-    date: sanitizeText(config.date, 20) || new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
+    date: sanitizeText(config.date, 20) || fallbackDate,
     location: sanitizeText(config.location, MAX_LOCATION_LENGTH) || 'TBD Venue',
     setting,
-    guestCount: Math.round(clampNumber(config.guestCount, MIN_GUESTS, MAX_GUESTS, DEFAULT_GUESTS)),
+    guestCount: Math.round(clampNumber(config.guestCount ?? DEFAULT_GUESTS, MIN_GUESTS, MAX_GUESTS)),
     currency,
-    totalBudget: roundToDollar(clampNumber(config.totalBudget, MIN_BUDGET, MAX_BUDGET, DEFAULT_BUDGET)),
+    totalBudget: roundToDollar(clampNumber(config.totalBudget ?? DEFAULT_BUDGET, MIN_BUDGET, MAX_BUDGET_LIMIT)),
     themeVibe: sanitizeText(config.themeVibe, MAX_THEME_LENGTH) || 'Modern Editorial',
     notes: sanitizeText(config.notes ?? '', MAX_NOTES_LENGTH),
   };
 }
 
 /**
- * Builds a compact, XML-sandboxed prompt context string for Gemini API calls.
- * @param config - Event configuration
- * @returns Compact XML-delimited context block
+ * @description Builds a compact XML-sandboxed prompt context string for Gemini API calls.
+ * @param {EventConfig} config - Event configuration
+ * @returns {string} XML-delimited context block
  */
 export function buildCompactPromptContext(config: EventConfig): string {
   const safe = sanitizeEventConfig(config);
   return [
-    wrapXmlSandbox('event_type', safe.eventType),
-    wrapXmlSandbox('event_name', safe.eventName),
-    wrapXmlSandbox('event_date', safe.date),
-    wrapXmlSandbox('location_setting', `${safe.location} (${safe.setting})`),
-    wrapXmlSandbox('guest_count', String(safe.guestCount)),
-    wrapXmlSandbox('total_budget', `${safe.currency} ${safe.totalBudget}`),
-    wrapXmlSandbox('theme_vibe', safe.themeVibe),
+    wrapUserPromptXml('event_type', safe.eventType),
+    wrapUserPromptXml('event_name', safe.eventName),
+    wrapUserPromptXml('event_date', safe.date),
+    wrapUserPromptXml('location_setting', `${safe.location} (${safe.setting})`),
+    wrapUserPromptXml('guest_count', String(safe.guestCount)),
+    wrapUserPromptXml('total_budget', `${safe.currency} ${safe.totalBudget}`),
+    wrapUserPromptXml('theme_vibe', safe.themeVibe),
   ].join('\n');
 }
 
 /**
- * Computes a deterministic cache key hash for an API endpoint and request payload.
- * @param endpoint - API path
- * @param payload - Serializable request body
- * @returns Deterministic string hash key
+ * @description Computes a deterministic O(1) cache key hash for an API endpoint and request payload.
+ * @param {string} endpoint - API route path
+ * @param {unknown} payload - Serializable request body
+ * @returns {string} Deterministic string hash key
  */
 export function computeRequestHash(endpoint: string, payload: unknown): string {
   const serialized = `${endpoint}:${JSON.stringify(payload)}`;
-  let hash = 5381;
+  let hash = HASH_SEED;
   for (let i = 0; i < serialized.length; i++) {
-    hash = (hash * 33) ^ serialized.charCodeAt(i);
+    hash = (hash * HASH_MULTIPLIER) ^ serialized.charCodeAt(i);
   }
   return `${endpoint}#${(hash >>> 0).toString(16)}`;
 }
 
 /**
- * Validates and hydrates raw parsed JSON from `localStorage` into a safe `EventPlanState`.
- * @param raw - Unknown parsed value from storage
- * @returns Validated `EventPlanState` or `null` if schema checks fail
+ * @description Validates and hydrates raw parsed JSON from `localStorage` into a safe `EventPlanState`.
+ * @param {unknown} raw - Unknown parsed value from storage
+ * @returns {EventPlanState | null} Validated `EventPlanState` or `null` if schema validation fails
  */
 export function validateAndHydrateState(raw: unknown): EventPlanState | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const c = raw as Record<string, unknown>;
-  if (!c.config || typeof c.config !== 'object') return null;
-  if (!Array.isArray(c.concepts) || !Array.isArray(c.budgetCategories) || !Array.isArray(c.countdownTasks) || !Array.isArray(c.itinerary) || !Array.isArray(c.vendors)) {
+  if (!isRecordObject(raw) || !isRecordObject(raw.config) || !isValidBlueprint(raw)) {
     return null;
   }
   return {
-    config: sanitizeEventConfig(c.config as EventConfig),
-    concepts: c.concepts as EventPlanState['concepts'],
-    selectedConceptId: typeof c.selectedConceptId === 'string' ? c.selectedConceptId : null,
-    budgetCategories: c.budgetCategories as EventPlanState['budgetCategories'],
-    countdownTasks: c.countdownTasks as EventPlanState['countdownTasks'],
-    itinerary: c.itinerary as EventPlanState['itinerary'],
-    vendors: c.vendors as EventPlanState['vendors'],
-    chatHistory: Array.isArray(c.chatHistory) ? (c.chatHistory as EventPlanState['chatHistory']) : [],
-    lastUpdated: typeof c.lastUpdated === 'string' ? c.lastUpdated : new Date().toISOString(),
+    config: sanitizeEventConfig(raw.config as unknown as EventConfig),
+    concepts: raw.concepts,
+    selectedConceptId: typeof raw.selectedConceptId === 'string' ? raw.selectedConceptId : null,
+    budgetCategories: raw.budgetCategories,
+    countdownTasks: raw.countdownTasks,
+    itinerary: raw.itinerary,
+    vendors: raw.vendors,
+    chatHistory: Array.isArray(raw.chatHistory) ? (raw.chatHistory as EventPlanState['chatHistory']) : [],
+    lastUpdated: typeof raw.lastUpdated === 'string' ? raw.lastUpdated : new Date().toISOString(),
   };
 }

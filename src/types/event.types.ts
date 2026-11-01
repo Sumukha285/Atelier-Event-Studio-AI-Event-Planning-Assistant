@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type EventType = 'Wedding' | 'Birthday' | 'Community Event';
+export type EventTypeCode = 'WEDDING' | 'BIRTHDAY' | 'COMMUNITY';
+
+export type EventTypeLabel = 'Wedding' | 'Birthday' | 'Community Event';
+
+export type EventType = EventTypeLabel | EventTypeCode;
 
 export type SettingType = 'Indoor' | 'Outdoor' | 'Hybrid / City';
 
@@ -29,19 +33,11 @@ export type CoreBudgetCategoryName =
 
 export type BudgetCategoryName = CoreBudgetCategoryName | string;
 
-export type VendorBookingStatus =
-  | 'Researching'
-  | 'Contacted'
-  | 'Booked'
-  | 'Paid';
+export type VendorBookingStatus = 'Researching' | 'Contacted' | 'Booked' | 'Paid';
 
 export type VendorPriority = 'Essential' | 'Recommended' | 'Optional';
 
-export type BudgetHealthLabel =
-  | 'Under Budget'
-  | 'Near Limit'
-  | 'Over Budget'
-  | 'Unspent';
+export type BudgetHealthLabel = 'Under Budget' | 'Near Limit' | 'Over Budget' | 'Unspent';
 
 export type ActiveView = 'setup' | 'budget' | 'timeline' | 'vendors';
 
@@ -84,6 +80,8 @@ export interface BudgetCategoryItem {
   readonly notes: string;
 }
 
+export type BudgetItem = BudgetCategoryItem;
+
 export interface CountdownTask {
   readonly id: string;
   readonly milestone: MilestoneWindow;
@@ -92,6 +90,8 @@ export interface CountdownTask {
   readonly status: TaskStatus;
   readonly assigneeOrNote: string;
 }
+
+export type TimelineTask = CountdownTask;
 
 export interface ItineraryItem {
   readonly id: string;
@@ -116,6 +116,7 @@ export interface VendorItem {
   readonly vettingQuestions: readonly string[];
   readonly contractRedFlags: readonly string[];
   readonly isPermitOrCompliance?: boolean;
+  readonly eventType?: EventType;
 }
 
 export interface ChatMessage {
@@ -124,6 +125,17 @@ export interface ChatMessage {
   readonly content: string;
   readonly timestamp: string;
 }
+
+export interface CompleteBlueprintResponse {
+  readonly concepts: readonly ConceptPackage[];
+  readonly budgetCategories: readonly BudgetCategoryItem[];
+  readonly countdownTasks: readonly CountdownTask[];
+  readonly itinerary: readonly ItineraryItem[];
+  readonly vendors: readonly VendorItem[];
+  readonly source: 'gemini' | 'studio-engine';
+}
+
+export type EventBlueprint = CompleteBlueprintResponse;
 
 export interface EventPlanState {
   readonly config: EventConfig;
@@ -137,15 +149,6 @@ export interface EventPlanState {
   readonly lastUpdated: string;
 }
 
-export interface CompleteBlueprintResponse {
-  readonly concepts: readonly ConceptPackage[];
-  readonly budgetCategories: readonly BudgetCategoryItem[];
-  readonly countdownTasks: readonly CountdownTask[];
-  readonly itinerary: readonly ItineraryItem[];
-  readonly vendors: readonly VendorItem[];
-  readonly source: 'gemini' | 'studio-engine';
-}
-
 export interface ValidationResult {
   readonly valid: boolean;
   readonly errors: Readonly<Record<string, string>>;
@@ -155,6 +158,7 @@ export interface BudgetSummary {
   readonly totalBudget: number;
   readonly totalEstimated: number;
   readonly totalActual: number;
+  readonly contingencyReserve: number;
   readonly unallocatedBudget: number;
   readonly remainingFromTotal: number;
   readonly varianceEstimatedVsActual: number;
@@ -181,10 +185,43 @@ export type EventAction =
   | { readonly type: 'SELECT_CONCEPT'; readonly payload: ConceptPackage }
   | { readonly type: 'UPDATE_CONCEPTS'; readonly payload: readonly ConceptPackage[] }
   | { readonly type: 'APPLY_BLUEPRINT'; readonly payload: CompleteBlueprintResponse }
+  | { readonly type: 'HYDRATE_BLUEPRINT'; readonly payload: CompleteBlueprintResponse }
   | { readonly type: 'UPDATE_BUDGET_CATEGORIES'; readonly payload: readonly BudgetCategoryItem[] }
+  | { readonly type: 'ADD_BUDGET_ITEM'; readonly payload: BudgetCategoryItem }
+  | { readonly type: 'UPDATE_ACTUAL_COST'; readonly payload: { readonly id: string; readonly actualSpent: number } }
   | { readonly type: 'UPDATE_TOTAL_BUDGET'; readonly payload: number }
   | { readonly type: 'UPDATE_COUNTDOWN'; readonly payload: readonly CountdownTask[] }
+  | { readonly type: 'TOGGLE_TIMELINE_TASK'; readonly payload: string }
   | { readonly type: 'UPDATE_ITINERARY'; readonly payload: readonly ItineraryItem[] }
   | { readonly type: 'UPDATE_VENDORS'; readonly payload: readonly VendorItem[] }
+  | { readonly type: 'UPDATE_VENDOR_STATUS'; readonly payload: { readonly id: string; readonly bookingStatus: VendorBookingStatus } }
   | { readonly type: 'APPEND_CHAT_MESSAGE'; readonly payload: ChatMessage }
   | { readonly type: 'HYDRATE_STATE'; readonly payload: EventPlanState };
+
+/**
+ * @description Checks whether a candidate object is a non-null plain record.
+ * @param {unknown} value - Candidate value to inspect
+ * @returns {value is Record<string, unknown>} True when value is a non-null object
+ */
+export function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * @description Runtime type guard verifying whether untrusted data conforms to `EventBlueprint`.
+ * @param {unknown} data - Untrusted payload from API or storage
+ * @returns {data is EventBlueprint} True if all required blueprint arrays are present and valid
+ */
+export function isValidBlueprint(data: unknown): data is EventBlueprint {
+  if (!isRecordObject(data)) return false;
+  const hasArrays =
+    Array.isArray(data.concepts) &&
+    Array.isArray(data.budgetCategories) &&
+    Array.isArray(data.countdownTasks) &&
+    Array.isArray(data.itinerary) &&
+    Array.isArray(data.vendors);
+  if (!hasArrays) return false;
+  return (data.budgetCategories as unknown[]).every(
+    (item) => isRecordObject(item) && typeof item.category === 'string' && typeof item.estimatedCost === 'number'
+  );
+}
