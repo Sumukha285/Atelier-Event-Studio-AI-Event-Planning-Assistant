@@ -1,0 +1,6 @@
+{
+  "name": "Atelier Event Studio — AI Event Planning Assistant",
+  "description": "A modern GenAI-powered Event Planning Assistant for organizing Weddings, Birthdays, and Community Events with smart budget allocation, chronological run-of-show timelines, vendor vetting checklists, and an interactive Event Co-Pilot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
