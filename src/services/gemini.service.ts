@@ -65,21 +65,13 @@ const responseCache = new Map<string, unknown>();
 const activeControllers = new Map<string, AbortController>();
 let lastInvocationTimestamp = 0;
 
-/**
- * @description Calculates remaining milliseconds in the 3,000ms rate-limit cooldown window.
- * @param {number} [now=Date.now()] - Current timestamp in milliseconds
- * @returns {number} Remaining cooldown milliseconds (0 when ready)
- */
+/** @description Calculates remaining milliseconds in the 3,000ms rate-limit cooldown window. */
 export function getRemainingCooldownMs(now: number = Date.now()): number {
   const elapsed = now - lastInvocationTimestamp;
   return elapsed < API_COOLDOWN_MS ? API_COOLDOWN_MS - elapsed : 0;
 }
 
-/**
- * @description Aborts any existing request on the given channel and creates a fresh `AbortController` with a 15,000ms timeout.
- * @param {string} channel - Logical request channel identifier
- * @returns {AbortController} Managed `AbortController` instance
- */
+/** @description Aborts any existing request on the given channel and creates a fresh `AbortController` with a 15,000ms timeout. */
 export function createManagedAbortController(channel: string): AbortController {
   const previous = activeControllers.get(channel);
   if (previous) previous.abort();
@@ -89,26 +81,17 @@ export function createManagedAbortController(channel: string): AbortController {
   return controller;
 }
 
-/**
- * @description Aborts all active Gemini API requests and clears controller references.
- * @returns {void}
- */
+/** @description Aborts all active Gemini API requests and clears controller references. */
 export function abortAllRequests(): void {
   for (const controller of activeControllers.values()) controller.abort();
   activeControllers.clear();
 }
 
-/**
- * @description Executes a cached JSON POST request with O(1) hash lookup and 15,000ms AbortController timeout.
- * @param {PostJsonRequestConfig} requestConfig - Endpoint, payload, channel, and cache flag
- * @returns {Promise<T>} Parsed JSON response
- */
+/** @description Executes a cached JSON POST request with O(1) hash lookup and 15,000ms AbortController timeout. */
 async function postCachedJson<T>(requestConfig: PostJsonRequestConfig): Promise<T> {
   const { endpoint, payload, channel, bypassCache = false } = requestConfig;
   const cacheKey = computeRequestHash(endpoint, payload);
-  if (!bypassCache && responseCache.has(cacheKey)) {
-    return responseCache.get(cacheKey) as T;
-  }
+  if (!bypassCache && responseCache.has(cacheKey)) return responseCache.get(cacheKey) as T;
   lastInvocationTimestamp = Date.now();
   const controller = createManagedAbortController(channel);
   try {
@@ -127,11 +110,7 @@ async function postCachedJson<T>(requestConfig: PostJsonRequestConfig): Promise<
   }
 }
 
-/**
- * @description Fetches and validates a unified 4-pillar `EventBlueprint`, caching valid responses in `Map<string, EventBlueprint>`.
- * @param {EventConfig} config - Event configuration parameters
- * @returns {Promise<CompleteBlueprintResponse>} Validated complete blueprint
- */
+/** @description Fetches and validates a unified 4-pillar `EventBlueprint`, caching valid responses in `Map<string, EventBlueprint>`. */
 export async function fetchCompleteBlueprint(config: EventConfig): Promise<CompleteBlueprintResponse> {
   const safeConfig = sanitizeEventConfig(config);
   const hashKey = computeRequestHash('/api/ai/blueprint', safeConfig);
@@ -142,85 +121,39 @@ export async function fetchCompleteBlueprint(config: EventConfig): Promise<Compl
     payload: { config: safeConfig },
     channel: 'blueprint',
   });
-  if (!isValidBlueprint(result)) {
-    throw new Error('Invalid blueprint schema received from AI service.');
-  }
+  if (!isValidBlueprint(result)) throw new Error('Invalid blueprint schema received from AI service.');
   blueprintCache.set(hashKey, result);
   return result;
 }
 
-/**
- * @description Generates 3 tailored concept packages with hex color palettes for the active event.
- * @param {EventConfig} config - Event configuration parameters
- * @returns {Promise<BrainstormResponse>} Concept packages response
- */
+/** @description Generates 3 tailored concept packages with hex color palettes for the active event. */
 export async function fetchConcepts(config: EventConfig): Promise<BrainstormResponse> {
-  return postCachedJson<BrainstormResponse>({
-    endpoint: '/api/ai/brainstorm',
-    payload: { config: sanitizeEventConfig(config) },
-    channel: 'brainstorm',
-  });
+  return postCachedJson<BrainstormResponse>({ endpoint: '/api/ai/brainstorm', payload: { config: sanitizeEventConfig(config) }, channel: 'brainstorm' });
 }
 
-/**
- * @description Generates an AI-calibrated budget allocation including the 10% contingency reserve.
- * @param {EventConfig} config - Event configuration parameters
- * @returns {Promise<BudgetAiResponse>} Budget allocation response
- */
+/** @description Generates an AI-calibrated budget allocation including the 10% contingency reserve. */
 export async function fetchBudgetAllocation(config: EventConfig): Promise<BudgetAiResponse> {
-  return postCachedJson<BudgetAiResponse>({
-    endpoint: '/api/ai/budget',
-    payload: { config: sanitizeEventConfig(config) },
-    channel: 'budget',
-  });
+  return postCachedJson<BudgetAiResponse>({ endpoint: '/api/ai/budget', payload: { config: sanitizeEventConfig(config) }, channel: 'budget' });
 }
 
-/**
- * @description Generates backwards-planned countdown milestones and chronological Day-Of itinerary slots.
- * @param {EventConfig} config - Event configuration parameters
- * @returns {Promise<TimelineAiResponse>} Timeline response
- */
+/** @description Generates backwards-planned countdown milestones and chronological Day-Of itinerary slots. */
 export async function fetchTimeline(config: EventConfig): Promise<TimelineAiResponse> {
-  return postCachedJson<TimelineAiResponse>({
-    endpoint: '/api/ai/timeline',
-    payload: { config: sanitizeEventConfig(config) },
-    channel: 'timeline',
-  });
+  return postCachedJson<TimelineAiResponse>({ endpoint: '/api/ai/timeline', payload: { config: sanitizeEventConfig(config) }, channel: 'timeline' });
 }
 
-/**
- * @description Generates 5 specific vendor vetting questions and 3 contract red flags.
- * @param {EventConfig} config - Event configuration parameters
- * @param {Pick<VendorItem, 'category' | 'roleDescription' | 'quotedPrice'>} vendor - Target vendor descriptor
- * @returns {Promise<VendorVettingAiResponse>} Vetting questions and red flags
- */
+/** @description Generates 5 specific vendor vetting questions and 3 contract red flags. */
 export async function fetchVendorVetting(
   config: EventConfig,
   vendor: Pick<VendorItem, 'category' | 'roleDescription' | 'quotedPrice'>
 ): Promise<VendorVettingAiResponse> {
   return postCachedJson<VendorVettingAiResponse>({
     endpoint: '/api/ai/vendor-questions',
-    payload: {
-      config: sanitizeEventConfig(config),
-      vendorCategory: vendor.category,
-      roleDescription: vendor.roleDescription,
-      quotedPrice: vendor.quotedPrice,
-    },
+    payload: { config: sanitizeEventConfig(config), vendorCategory: vendor.category, roleDescription: vendor.roleDescription, quotedPrice: vendor.quotedPrice },
     channel: `vendor-${vendor.category}`,
   });
 }
 
-/**
- * @description Sends a contextual planning prompt to the Event Co-Pilot assistant.
- * @param {string} message - User prompt text
- * @param {EventPlanState} eventState - Active event state for grounding
- * @returns {Promise<CoPilotAiResponse>} Assistant reply payload
- */
+/** @description Sends a contextual planning prompt to the Event Co-Pilot assistant. */
 export async function sendCoPilotMessage(message: string, eventState: EventPlanState): Promise<CoPilotAiResponse> {
-  return postCachedJson<CoPilotAiResponse>({
-    endpoint: '/api/ai/copilot',
-    payload: { message, eventState },
-    channel: 'copilot',
-    bypassCache: true,
-  });
+  return postCachedJson<CoPilotAiResponse>({ endpoint: '/api/ai/copilot', payload: { message, eventState }, channel: 'copilot', bypassCache: true });
 }

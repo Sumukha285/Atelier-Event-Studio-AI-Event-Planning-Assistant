@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EVENT_PRESETS } from '../data/presets';
+import { EVENT_PRESETS } from '../constants/presets.data';
 import {
   ConceptPackage,
   CountdownTask,
@@ -14,11 +14,7 @@ import {
 } from '../types/event.types';
 import { computeBudgetSummary, formatCurrency, resolveEventTypeLabel } from '../utils/eventLogic';
 
-/**
- * Generates 3 deterministic fallback concept packages tailored to the user's `EventConfig`.
- * @param config - Sanitized event configuration
- * @returns Array of 3 `ConceptPackage` objects
- */
+/** @description Generates 3 deterministic fallback concept packages tailored to the user's `EventConfig`. */
 export function buildFallbackConcepts(config: EventConfig): ConceptPackage[] {
   const vibe = config.themeVibe || 'Modern Architectural Elegance';
   const loc = config.location || 'Metropolitan Venue';
@@ -100,11 +96,7 @@ export function buildFallbackConcepts(config: EventConfig): ConceptPackage[] {
   ];
 }
 
-/**
- * Generates deterministic countdown tasks and run-of-show itinerary slots for a given `EventConfig`.
- * @param config - Sanitized event configuration
- * @returns Object containing `countdownTasks` and `itinerary`
- */
+/** @description Generates deterministic countdown tasks and run-of-show itinerary slots for a given `EventConfig`. */
 export function buildFallbackTimeline(config: EventConfig): {
   readonly countdownTasks: CountdownTask[];
   readonly itinerary: ItineraryItem[];
@@ -117,27 +109,14 @@ export function buildFallbackTimeline(config: EventConfig): {
   };
 }
 
-/**
- * Generates deterministic vendor directory entries scaled to the event budget.
- * @param config - Sanitized event configuration
- * @returns Array of `VendorItem` entries
- */
+/** @description Generates deterministic vendor directory entries scaled to the event budget. */
 export function buildFallbackVendors(config: EventConfig): VendorItem[] {
   const preset = EVENT_PRESETS[resolveEventTypeLabel(config.eventType)];
   const ratio = config.totalBudget / (preset.config.totalBudget || 1);
-  return preset.vendors.map((v, idx) => ({
-    ...v,
-    id: `vendor-${Date.now()}-${idx}`,
-    quotedPrice: Math.round(v.quotedPrice * ratio),
-  }));
+  return preset.vendors.map((v, idx) => ({ ...v, id: `vendor-${Date.now()}-${idx}`, quotedPrice: Math.round(v.quotedPrice * ratio) }));
 }
 
-/**
- * Generates 5 deterministic vetting questions and 3 contract red flags for a vendor category.
- * @param config - Sanitized event configuration
- * @param vendorCategory - Vendor category label
- * @returns Vetting questions and red flags
- */
+/** @description Generates 5 deterministic vetting questions and 3 contract red flags for a vendor category. */
 export function buildFallbackVendorVetting(
   config: EventConfig,
   vendorCategory: string
@@ -158,12 +137,7 @@ export function buildFallbackVendorVetting(
   };
 }
 
-/**
- * Synthesizes a grounded Event Co-Pilot response when the live AI key is unavailable.
- * @param message - User query string
- * @param state - Full event state
- * @returns Markdown assistant reply
- */
+/** @description Synthesizes a grounded Event Co-Pilot response when the live AI key is unavailable. */
 export function buildFallbackCoPilotReply(message: string, state: EventPlanState): string {
   const { config, budgetCategories } = state;
   const summary = computeBudgetSummary(config.totalBudget, budgetCategories);

@@ -31,22 +31,14 @@ import { COMPLETE_BLUEPRINT_SCHEMA, SECURITY_SYSTEM_GUARDRAIL } from './gemini.s
 
 export const GEMINI_MODEL_ID = 'gemini-3-flash-preview';
 
-/**
- * Instantiates the server-side `GoogleGenAI` SDK client if a valid API key is present.
- * @returns `GoogleGenAI` client instance or `null`
- */
+/** @description Instantiates the server-side `GoogleGenAI` SDK client if a valid API key is present. */
 export function getGenAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'MY_GEMINI_API_KEY' || apiKey.trim() === '') return null;
   return new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
 }
 
-/**
- * Normalizes AI-returned budget items so all 7 core categories exist and sum strictly to `totalBudget`.
- * @param rawItems - Raw category items returned from Gemini
- * @param config - Sanitized event configuration
- * @returns Normalized `BudgetCategoryItem[]`
- */
+/** @description Normalizes AI-returned budget items so all 7 core categories exist and sum strictly to `totalBudget`. */
 export function normalizeBudgetCategories(
   rawItems: ReadonlyArray<Record<string, unknown>>,
   config: EventConfig
@@ -76,11 +68,7 @@ export function normalizeBudgetCategories(
   });
 }
 
-/**
- * Generates a unified complete blueprint in a single Gemini call (or fallback synthesis).
- * @param config - Sanitized event configuration
- * @returns Complete blueprint payload
- */
+/** @description Generates a unified complete blueprint in a single Gemini call (or fallback synthesis). */
 export async function generateBlueprintServer(config: EventConfig): Promise<CompleteBlueprintResponse> {
   const ai = getGenAIClient();
   const fallbackTl = buildFallbackTimeline(config);
@@ -139,12 +127,7 @@ export async function generateBlueprintServer(config: EventConfig): Promise<Comp
   }
 }
 
-/**
- * Generates a contextual Event Co-Pilot reply grounded in the current event state.
- * @param message - User prompt
- * @param state - Full event plan state
- * @returns Assistant reply and source
- */
+/** @description Generates a contextual Event Co-Pilot reply grounded in the current event state. */
 export async function generateCoPilotServer(
   message: string,
   state: EventPlanState

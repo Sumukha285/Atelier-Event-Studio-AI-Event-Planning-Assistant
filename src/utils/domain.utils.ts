@@ -4,63 +4,24 @@
  */
 
 import {
-  BUDGET_CATEGORIES,
-  CATEGORY_DEFAULT_NOTES,
-  CONTINGENCY_RATE,
-  CURRENCY_SYMBOLS,
-  INDUSTRY_STANDARD_WEIGHTS,
-  MAX_BUDGET_LIMIT,
-  MAX_GUESTS,
-  MILESTONE_WINDOWS,
-  MIN_BUDGET,
-  MIN_GUESTS,
-  MIN_NAME_LENGTH,
-  MIN_THEME_LENGTH,
-  NEAR_LIMIT_PERCENT,
-  PERCENTAGE_BASE,
+  BUDGET_CATEGORIES, CATEGORY_DEFAULT_NOTES, CONTINGENCY_RATE, CURRENCY_SYMBOLS,
+  INDUSTRY_STANDARD_WEIGHTS, MAX_BUDGET_LIMIT, MAX_GUESTS, MILESTONE_WINDOWS,
+  MIN_BUDGET, MIN_GUESTS, MIN_NAME_LENGTH, MIN_THEME_LENGTH, NEAR_LIMIT_PERCENT, PERCENTAGE_BASE,
 } from '../constants/event.constants';
 import {
-  BudgetCategoryItem,
-  BudgetHealthLabel,
-  BudgetItem,
-  BudgetSummary,
-  CountdownTask,
-  CurrencyCode,
-  EventConfig,
-  EventPlanState,
-  EventType,
-  ItineraryItem,
-  TimelineStats,
-  TimelineTask,
-  ValidationResult,
-  VendorItem,
+  BudgetCategoryItem, BudgetHealthLabel, BudgetItem, BudgetSummary, CountdownTask,
+  CurrencyCode, EventConfig, EventPlanState, EventType, ItineraryItem, TimelineStats,
+  TimelineTask, ValidationResult, VendorItem,
 } from '../types/event.types';
-import {
-  clampNumber,
-  resolveEventTypeLabel,
-  roundToDollar,
-  sanitizeText,
-  toSafeCurrencyCents,
-} from './security.utils';
+import { clampNumber, resolveEventTypeLabel, roundToDollar, sanitizeText, toSafeCurrencyCents } from './security.utils';
 
-/**
- * @description Formats a numeric value into a localized currency display string.
- * @param {number} amount - Monetary amount
- * @param {CurrencyCode} [currency='USD'] - ISO currency code
- * @returns {string} Formatted currency string
- */
+/** @description Formats a numeric value into a localized currency display string. */
 export function formatCurrency(amount: number, currency: CurrencyCode = 'USD'): string {
   const safeAmount = Number.isFinite(amount) ? roundToDollar(amount) : 0;
-  const symbol = CURRENCY_SYMBOLS[currency] ?? '$';
-  return `${symbol}${safeAmount.toLocaleString('en-US')}`;
+  return `${CURRENCY_SYMBOLS[currency] ?? '$'}${safeAmount.toLocaleString('en-US')}`;
 }
 
-/**
- * @description Classifies a single budget line item's spending status against its estimated allocation.
- * @param {number} estimatedCost - Target category allocation
- * @param {number} actualSpent - Actual amount committed or spent
- * @returns {BudgetHealthLabel} Semantic health label
- */
+/** @description Classifies a single budget line item's spending status against its estimated allocation. */
 export function classifyCategoryBudgetStatus(estimatedCost: number, actualSpent: number): BudgetHealthLabel {
   const est = Math.max(0, estimatedCost);
   const act = Math.max(0, actualSpent);
@@ -69,19 +30,12 @@ export function classifyCategoryBudgetStatus(estimatedCost: number, actualSpent:
   return toSafeCurrencyCents((act / est) * PERCENTAGE_BASE) >= NEAR_LIMIT_PERCENT ? 'Near Limit' : 'Under Budget';
 }
 
-/**
- * @description Computes aggregate budget metrics, 10% contingency reserve, and variance counts from budget items.
- * @param {readonly BudgetItem[]} items - Category ledger rows
- * @param {number} totalBudget - Master budget ceiling
- * @returns {BudgetSummary} Computed budget summary metrics
- */
+/** @description Computes aggregate budget metrics, 10% contingency reserve, and variance counts from budget items. */
 export function calculateBudgetMetrics(items: readonly BudgetItem[], totalBudget: number): BudgetSummary {
   const safeTotal = Math.max(0, roundToDollar(totalBudget));
   const contingencyReserve = roundToDollar(safeTotal * CONTINGENCY_RATE);
   const totalEstimated = items.reduce((sum, i) => sum + Math.max(0, roundToDollar(i.estimatedCost || 0)), 0);
   const totalActual = items.reduce((sum, i) => sum + Math.max(0, roundToDollar(i.actualSpent || 0)), 0);
-  const overBudgetCount = items.filter((i) => classifyCategoryBudgetStatus(i.estimatedCost, i.actualSpent) === 'Over Budget').length;
-  const nearLimitCount = items.filter((i) => classifyCategoryBudgetStatus(i.estimatedCost, i.actualSpent) === 'Near Limit').length;
   return {
     totalBudget: safeTotal,
     totalEstimated,
@@ -92,52 +46,29 @@ export function calculateBudgetMetrics(items: readonly BudgetItem[], totalBudget
     varianceEstimatedVsActual: totalEstimated - totalActual,
     estimatedPercentOfTotal: safeTotal > 0 ? Math.round((totalEstimated / safeTotal) * PERCENTAGE_BASE) : 0,
     actualPercentOfTotal: safeTotal > 0 ? Math.round((totalActual / safeTotal) * PERCENTAGE_BASE) : 0,
-    overBudgetCount,
-    nearLimitCount,
+    overBudgetCount: items.filter((i) => classifyCategoryBudgetStatus(i.estimatedCost, i.actualSpent) === 'Over Budget').length,
+    nearLimitCount: items.filter((i) => classifyCategoryBudgetStatus(i.estimatedCost, i.actualSpent) === 'Near Limit').length,
   };
 }
 
-/**
- * @description Computes aggregate budget metrics with `(totalBudget, categories)` signature compatibility.
- * @param {number} totalBudget - Master budget ceiling
- * @param {readonly BudgetCategoryItem[]} categories - Category ledger rows
- * @returns {BudgetSummary} Computed budget summary metrics
- */
+/** @description Computes aggregate budget metrics with `(totalBudget, categories)` signature compatibility. */
 export function computeBudgetSummary(totalBudget: number, categories: readonly BudgetCategoryItem[]): BudgetSummary {
   return calculateBudgetMetrics(categories, totalBudget);
 }
 
-/**
- * @description Calculates integer completion percentage (`0` to `100`) across a list of timeline tasks.
- * @param {readonly TimelineTask[]} tasks - Countdown checklist tasks
- * @returns {number} Completion percentage between 0 and 100
- */
+/** @description Calculates integer completion percentage (`0` to `100`) across a list of timeline tasks. */
 export function calculateTimelineProgress(tasks: readonly TimelineTask[]): number {
   if (tasks.length === 0) return 0;
-  const completed = tasks.filter((task) => task.status === 'Completed').length;
-  return Math.round((completed / tasks.length) * PERCENTAGE_BASE);
+  return Math.round((tasks.filter((task) => task.status === 'Completed').length / tasks.length) * PERCENTAGE_BASE);
 }
 
-/**
- * @description Filters vendor checklist items relevant to the selected `EventType` (including civic permits for Community Events).
- * @param {readonly VendorItem[]} vendors - Full list of vendor records
- * @param {EventType} eventType - Active event archetype
- * @returns {readonly VendorItem[]} Filtered vendor items
- */
+/** @description Filters vendor checklist items relevant to the selected `EventType`. */
 export function filterVendorsByCategory(vendors: readonly VendorItem[], eventType: EventType): readonly VendorItem[] {
   const canonical = resolveEventTypeLabel(eventType);
-  return vendors.filter((vendor) => {
-    if (vendor.eventType && resolveEventTypeLabel(vendor.eventType) !== canonical) return false;
-    return canonical === 'Community Event' ? true : !vendor.isPermitOrCompliance;
-  });
+  return vendors.filter((v) => (!v.eventType || resolveEventTypeLabel(v.eventType) === canonical) && (canonical === 'Community Event' || !v.isPermitOrCompliance));
 }
 
-/**
- * @description Computes detailed completion statistics across countdown tasks and run-of-show itinerary slots.
- * @param {readonly CountdownTask[]} tasks - Countdown checklist tasks
- * @param {readonly ItineraryItem[]} [itinerary=[]] - Day-of itinerary slots
- * @returns {TimelineStats} Detailed timeline progress metrics
- */
+/** @description Computes detailed completion statistics across countdown tasks and run-of-show itinerary slots. */
 export function computeTimelineProgress(tasks: readonly CountdownTask[], itinerary: readonly ItineraryItem[] = []): TimelineStats {
   const completedCount = tasks.filter((t) => t.status === 'Completed').length;
   const inProgressCount = tasks.filter((t) => t.status === 'In Progress').length;
@@ -154,13 +85,7 @@ export function computeTimelineProgress(tasks: readonly CountdownTask[], itinera
   };
 }
 
-/**
- * @description Distributes `totalBudget` across all 7 core categories using integer-cent precision so the sum equals `totalBudget`.
- * @param {number} totalBudget - Total event budget
- * @param {EventType} eventType - Selected event archetype
- * @param {readonly BudgetCategoryItem[]} [existingItems] - Existing items to preserve `actualSpent`
- * @returns {BudgetCategoryItem[]} Proportionally allocated budget category array
- */
+/** @description Distributes `totalBudget` across all 7 core categories using integer-cent precision. */
 export function calculateBudgetAllocation(
   totalBudget: number,
   eventType: EventType,
@@ -188,11 +113,7 @@ export function calculateBudgetAllocation(
   });
 }
 
-/**
- * @description Validates an `EventConfig` and returns a structured field error map.
- * @param {Partial<EventConfig>} config - Candidate event configuration
- * @returns {ValidationResult} Validation flag and error dictionary
- */
+/** @description Validates an `EventConfig` and returns a structured field error map. */
 export function validateEventConfig(config: Partial<EventConfig>): ValidationResult {
   const errors: Record<string, string> = {};
   if (sanitizeText(config.eventName).length < MIN_NAME_LENGTH) errors.eventName = 'Event name must be at least 2 characters.';
@@ -204,11 +125,7 @@ export function validateEventConfig(config: Partial<EventConfig>): ValidationRes
   return { valid: Object.keys(errors).length === 0, errors };
 }
 
-/**
- * @description Compiles the full event plan state into a structured Markdown document for export.
- * @param {EventPlanState} state - Full event planning state
- * @returns {string} Formatted Markdown document
- */
+/** @description Compiles the full event plan state into a structured Markdown document for export. */
 export function generatePlanMarkdown(state: EventPlanState): string {
   const { config, concepts, selectedConceptId, budgetCategories, countdownTasks, itinerary, vendors } = state;
   const summary = calculateBudgetMetrics(budgetCategories, config.totalBudget);
@@ -218,13 +135,5 @@ export function generatePlanMarkdown(state: EventPlanState): string {
   const tasks = MILESTONE_WINDOWS.map((w) => `### ${w}\n${countdownTasks.filter((t) => t.milestone === w).map((t) => `- [${t.status}] **${t.title}** (${t.category})`).join('\n')}`);
   const slots = itinerary.map((s) => `| ${s.timeSlot} | ${s.durationMinutes}m | ${s.activity} | ${s.locationZone} | ${s.status} |`);
   const vRows = vendors.map((v) => `### ${v.category} (${v.bookingStatus})\n- Quote: ${formatCurrency(v.quotedPrice, cur)} | Questions: ${v.vettingQuestions.join(' • ')}`);
-  return [
-    `# ${config.eventName} — Master Event Blueprint`,
-    `**Type:** ${config.eventType} | **Date:** ${config.date} | **Location:** ${config.location} | **Budget:** ${formatCurrency(summary.totalBudget, cur)}`,
-    active ? `\n## 1. Concept: ${active.title}\n${active.atmosphereDescription}` : '',
-    `\n## 2. Smart Budget Breakdown\n| Category | % | Estimated | Actual | Notes |\n| :--- | :--- | :--- | :--- | :--- |\n${budgetRows.join('\n')}`,
-    `\n## 3. Countdown Milestones\n${tasks.join('\n\n')}`,
-    `\n## 4. Day-Of Run-of-Show\n| Time | Duration | Activity | Zone | Status |\n| :--- | :--- | :--- | :--- | :--- |\n${slots.join('\n')}`,
-    `\n## 5. Vendor Directory\n${vRows.join('\n\n')}`,
-  ].join('\n');
+  return [`# ${config.eventName} — Master Event Blueprint`, `**Type:** ${config.eventType} | **Date:** ${config.date} | **Location:** ${config.location} | **Budget:** ${formatCurrency(summary.totalBudget, cur)}`, active ? `\n## 1. Concept: ${active.title}\n${active.atmosphereDescription}` : '', `\n## 2. Smart Budget Breakdown\n| Category | % | Estimated | Actual | Notes |\n| :--- | :--- | :--- | :--- | :--- |\n${budgetRows.join('\n')}`, `\n## 3. Countdown Milestones\n${tasks.join('\n\n')}`, `\n## 4. Day-Of Run-of-Show\n| Time | Duration | Activity | Zone | Status |\n| :--- | :--- | :--- | :--- | :--- |\n${slots.join('\n')}`, `\n## 5. Vendor Directory\n${vRows.join('\n\n')}`].join('\n');
 }

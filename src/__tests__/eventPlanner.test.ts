@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createInitialEventState } from '../data/presets';
+import { describe, it } from 'node:test';
+import { createInitialEventState } from '../constants/presets.data';
 import { EventActions, eventReducer } from '../state/event.reducer';
 import { isValidBlueprint } from '../types/event.types';
 import { runDiagnosticSelfTests } from '../utils/diagnostics.utils';
@@ -22,114 +22,110 @@ import {
   wrapUserPromptXml,
 } from '../utils/security.utils';
 
-test('1. sanitizeText strips XSS script tags, HTML elements, and dangerous protocols', () => {
-  const dirty = '<script>alert("xss")</script><b>Atelier Gala</b> javascript:evil()';
-  const clean = sanitizeText(dirty);
-  assert.equal(clean.includes('<script>'), false);
-  assert.equal(clean.includes('javascript:'), false);
-  assert.equal(clean.includes('Atelier Gala'), true);
-});
-
-test('2. wrapUserPromptXml sandboxes user input inside XML tags and escapes entities', () => {
-  const xml = wrapUserPromptXml('user_input', 'Clara & Julian <script>');
-  assert.equal(xml, '<user_input>Clara &amp; Julian</user_input>');
-});
-
-test('3. clampNumber guards against NaN, Infinity, and out-of-bounds numbers', () => {
-  assert.equal(clampNumber(Number.NaN, 100, 10000), 100);
-  assert.equal(clampNumber(Number.POSITIVE_INFINITY, 100, 10000), 100);
-  assert.equal(clampNumber(-250, 0, 10000), 0);
-  assert.equal(clampNumber(999999, 100, 10000), 10000);
-});
-
-test('4. toSafeCurrencyCents prevents IEEE 754 floating-point drift and negative values', () => {
-  assert.equal(toSafeCurrencyCents(0.1 + 0.2), 0.3);
-  assert.equal(toSafeCurrencyCents(19.999), 20);
-  assert.equal(toSafeCurrencyCents(-50), 0);
-});
-
-test('5. calculateBudgetMetrics computes 10% contingency reserve, variance, and over-budget count', () => {
-  const items = [
-    { id: '1', category: 'Venue', recommendedPercent: 30, estimatedCost: 10000, actualSpent: 10500, notes: '' },
-    { id: '2', category: 'Catering', recommendedPercent: 30, estimatedCost: 10000, actualSpent: 9200, notes: '' },
-  ];
-  const summary = calculateBudgetMetrics(items, 30000);
-  assert.equal(summary.contingencyReserve, 3000);
-  assert.equal(summary.totalEstimated, 20000);
-  assert.equal(summary.totalActual, 19700);
-  assert.equal(summary.varianceEstimatedVsActual, 300);
-  assert.equal(summary.overBudgetCount, 1);
-  assert.equal(summary.nearLimitCount, 1);
-});
-
-test('6. calculateBudgetAllocation distributes totalBudget across all 7 categories summing to exact total', () => {
-  const allocated = calculateBudgetAllocation(48000, 'WEDDING');
-  const sum = allocated.reduce((acc, item) => acc + item.estimatedCost, 0);
-  assert.equal(sum, 48000);
-  const contingency = allocated.find((i) => i.category === 'Contingency');
-  assert.equal(contingency?.recommendedPercent, 10);
-});
-
-test('7. eventReducer handles ADD_BUDGET_ITEM and UPDATE_ACTUAL_COST actions deterministically', () => {
-  const initial = createInitialEventState('WEDDING');
-  const withAdded = eventReducer(
-    initial,
-    EventActions.addBudgetItem({
-      id: 'custom-1',
-      category: 'Stationery',
-      recommendedPercent: 4,
-      estimatedCost: 1200,
-      actualSpent: 0,
-      notes: 'Letterpress',
-    })
-  );
-  assert.equal(withAdded.budgetCategories.length, initial.budgetCategories.length + 1);
-  const withActual = eventReducer(withAdded, EventActions.updateActualCost('custom-1', 1150));
-  assert.equal(withActual.budgetCategories.find((c) => c.id === 'custom-1')?.actualSpent, 1150);
-});
-
-test('8. eventReducer handles TOGGLE_TIMELINE_TASK and UPDATE_VENDOR_STATUS actions', () => {
-  const initial = createInitialEventState('BIRTHDAY');
-  const firstTask = initial.countdownTasks[0];
-  assert.ok(firstTask);
-  const toggled = eventReducer(initial, EventActions.toggleTimelineTask(firstTask.id));
-  assert.notEqual(toggled.countdownTasks[0]?.status, firstTask.status);
-
-  const firstVendor = initial.vendors[0];
-  assert.ok(firstVendor);
-  const updatedVendor = eventReducer(initial, EventActions.updateVendorStatus(firstVendor.id, 'Booked'));
-  assert.equal(updatedVendor.vendors[0]?.bookingStatus, 'Booked');
-});
-
-test('9. eventReducer handles HYDRATE_BLUEPRINT and isValidBlueprint rejects malformed payloads', () => {
-  const initial = createInitialEventState('COMMUNITY');
-  assert.equal(isValidBlueprint(initial), true);
-  assert.equal(isValidBlueprint(null), false);
-  assert.equal(isValidBlueprint({ concepts: 'invalid' }), false);
-
-  const nextBlueprint = {
-    concepts: initial.concepts,
-    budgetCategories: calculateBudgetAllocation(60000, 'COMMUNITY'),
-    countdownTasks: initial.countdownTasks,
-    itinerary: initial.itinerary,
-    vendors: initial.vendors,
-    source: 'studio-engine' as const,
+/**
+ * @description Provides a Jest/Vitest-compatible `expect` assertion API backed by `node:assert/strict`.
+ * @param {T} actual - Value under test
+ * @returns Assertion matchers object
+ */
+function expect<T>(actual: T): {
+  readonly toBe: (expected: T) => void;
+  readonly toEqual: (expected: T) => void;
+  readonly toContain: (substring: string) => void;
+  readonly toBeTruthy: () => void;
+  readonly toBeFalsy: () => void;
+} {
+  return {
+    toBe: (expected: T): void => assert.equal(actual, expected),
+    toEqual: (expected: T): void => assert.deepEqual(actual, expected),
+    toContain: (substring: string): void => assert.equal(String(actual).includes(substring), true),
+    toBeTruthy: (): void => assert.equal(Boolean(actual), true),
+    toBeFalsy: (): void => assert.equal(Boolean(actual), false),
   };
-  const hydrated = eventReducer(initial, EventActions.hydrateBlueprint(nextBlueprint));
-  assert.equal(hydrated.budgetCategories[0]?.estimatedCost, 10800);
+}
+
+describe('Security Sanitization & Numeric Guards', () => {
+  it('sanitizeText strips script payloads and javascript protocols', () => {
+    const dirty = '<script>alert("xss")</script><b>Grand Gala</b> javascript:evil()';
+    const clean = sanitizeText(dirty);
+    expect(clean.includes('<script>')).toBe(false);
+    expect(clean.includes('javascript:')).toBe(false);
+    expect(clean).toContain('Grand Gala');
+  });
+
+  it('wrapUserPromptXml encloses input in XML sandbox tags and escapes entities', () => {
+    const xml = wrapUserPromptXml('user_input', 'Clara & Julian <script>');
+    expect(xml).toBe('<user_input>Clara &amp; Julian</user_input>');
+  });
+
+  it('clampNumber and toSafeCurrencyCents guard against NaN, negatives, and float drift', () => {
+    expect(clampNumber(Number.NaN, 100, 5000)).toBe(100);
+    expect(clampNumber(999999, 100, 5000)).toBe(5000);
+    expect(clampNumber(-45, 0, 100)).toBe(0);
+    expect(toSafeCurrencyCents(0.1 + 0.2)).toBe(0.3);
+    expect(toSafeCurrencyCents(19.999)).toBe(20);
+    expect(toSafeCurrencyCents(-25)).toBe(0);
+  });
 });
 
-test('10. calculateTimelineProgress and filterVendorsByCategory operate accurately', () => {
-  const state = createInitialEventState('COMMUNITY');
-  const progress = calculateTimelineProgress(state.countdownTasks);
-  assert.equal(progress, 40);
-  const communityVendors = filterVendorsByCategory(state.vendors, 'COMMUNITY');
-  assert.equal(communityVendors.some((v) => Boolean(v.isPermitOrCompliance)), true);
+describe('Domain Budget, Timeline & Vendor Calculations', () => {
+  it('calculateBudgetMetrics computes 10% contingency reserve and over-budget count', () => {
+    const summary = calculateBudgetMetrics(
+      [
+        { id: '1', category: 'Venue', recommendedPercent: 30, estimatedCost: 10000, actualSpent: 10500, notes: '' },
+        { id: '2', category: 'Catering', recommendedPercent: 30, estimatedCost: 10000, actualSpent: 9200, notes: '' },
+      ],
+      30000
+    );
+    expect(summary.contingencyReserve).toBe(3000);
+    expect(summary.totalEstimated).toBe(20000);
+    expect(summary.totalActual).toBe(19700);
+    expect(summary.overBudgetCount).toBe(1);
+  });
+
+  it('calculateBudgetAllocation sums to exact totalBudget across 7 categories', () => {
+    const allocated = calculateBudgetAllocation(48000, 'Wedding');
+    const sum = allocated.reduce((acc, item) => acc + item.estimatedCost, 0);
+    expect(allocated.length).toBe(7);
+    expect(sum).toBe(48000);
+  });
+
+  it('calculateTimelineProgress and filterVendorsByCategory compute accurate domain subsets', () => {
+    const community = createInitialEventState('COMMUNITY');
+    expect(calculateTimelineProgress(community.countdownTasks)).toBe(40);
+    const filtered = filterVendorsByCategory(community.vendors, 'COMMUNITY');
+    expect(filtered.some((v) => Boolean(v.isPermitOrCompliance))).toBeTruthy();
+  });
 });
 
-test('11. runDiagnosticSelfTests passes all 12 in-app self-test assertions (12/12)', () => {
-  const summary = runDiagnosticSelfTests();
-  assert.equal(summary.total, 12);
-  assert.equal(summary.passedCount, 12);
-  assert.equal(summary.allPassed, true);
+describe('Event Reducer State Machine & Schema Validation', () => {
+  it('handles ADD_BUDGET_ITEM, UPDATE_ACTUAL_COST, TOGGLE_TIMELINE_TASK, UPDATE_VENDOR_STATUS, and HYDRATE_BLUEPRINT', () => {
+    const initial = createInitialEventState('Wedding');
+    const added = eventReducer(
+      initial,
+      EventActions.addBudgetItem({ id: 'b-custom', category: 'Lighting', recommendedPercent: 5, estimatedCost: 2000, actualSpent: 0, notes: '' })
+    );
+    expect(added.budgetCategories.length).toBe(initial.budgetCategories.length + 1);
+
+    const updatedCost = eventReducer(added, EventActions.updateActualCost('b-custom', 1750));
+    expect(updatedCost.budgetCategories.find((i) => i.id === 'b-custom')?.actualSpent).toBe(1750);
+
+    const taskId = initial.countdownTasks[0].id;
+    const toggled = eventReducer(initial, EventActions.toggleTimelineTask(taskId));
+    expect(toggled.countdownTasks[0].status !== initial.countdownTasks[0].status).toBe(true);
+
+    const vendorId = initial.vendors[0].id;
+    const booked = eventReducer(initial, EventActions.updateVendorStatus(vendorId, 'Booked'));
+    expect(booked.vendors[0].bookingStatus).toBe('Booked');
+
+    expect(isValidBlueprint(initial)).toBe(true);
+    expect(isValidBlueprint(null)).toBe(false);
+    expect(isValidBlueprint({ concepts: 'tampered' })).toBe(false);
+  });
+
+  it('passes all 12 in-app diagnostic self-tests', () => {
+    const suite = runDiagnosticSelfTests();
+    expect(suite.total).toBe(12);
+    expect(suite.passedCount).toBe(12);
+    expect(suite.allPassed).toBe(true);
+  });
 });

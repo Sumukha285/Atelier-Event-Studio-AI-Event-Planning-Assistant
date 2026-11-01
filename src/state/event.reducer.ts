@@ -4,7 +4,7 @@
  */
 
 import { MAX_BUDGET_LIMIT, STORAGE_KEY } from '../constants/event.constants';
-import { createInitialEventState } from '../data/presets';
+import { createInitialEventState } from '../constants/presets.data';
 import {
   BudgetCategoryItem,
   ChatMessage,
@@ -30,10 +30,7 @@ const STATUS_CYCLE_MAP: Readonly<Record<TaskStatus, TaskStatus>> = {
   Completed: 'Pending',
 };
 
-/**
- * @description Initializes the application state from `localStorage` if valid, falling back to the default Wedding preset.
- * @returns {EventPlanState} Hydrated initial `EventPlanState`
- */
+/** @description Initializes the application state from `localStorage` if valid, falling back to the default Wedding preset. */
 export function initEventState(): EventPlanState {
   if (typeof window === 'undefined') return createInitialEventState('Wedding');
   try {
@@ -46,12 +43,7 @@ export function initEventState(): EventPlanState {
   }
 }
 
-/**
- * @description Applies a configuration update and proportionally recalculates budget estimates when total or archetype changes.
- * @param {EventPlanState} state - Current event state
- * @param {EventConfig} nextConfig - Next event configuration
- * @returns {EventPlanState} Updated state
- */
+/** @description Applies a configuration update and proportionally recalculates budget estimates when total or archetype changes. */
 function handleUpdateConfig(state: EventPlanState, nextConfig: EventConfig): EventPlanState {
   const safeConfig = sanitizeEventConfig(nextConfig);
   const changed = safeConfig.totalBudget !== state.config.totalBudget || safeConfig.eventType !== state.config.eventType;
@@ -61,12 +53,7 @@ function handleUpdateConfig(state: EventPlanState, nextConfig: EventConfig): Eve
   return { ...state, config: safeConfig, budgetCategories, lastUpdated: new Date().toISOString() };
 }
 
-/**
- * @description Applies a validated `CompleteBlueprintResponse` to the state.
- * @param {EventPlanState} state - Current event state
- * @param {CompleteBlueprintResponse} blueprint - Validated blueprint payload
- * @returns {EventPlanState} Updated state
- */
+/** @description Applies a validated `CompleteBlueprintResponse` to the state. */
 function handleHydrateBlueprint(state: EventPlanState, blueprint: CompleteBlueprintResponse): EventPlanState {
   if (!isValidBlueprint(blueprint)) return state;
   return {
@@ -105,16 +92,8 @@ const ACTION_HANDLERS: ActionHandlerMap = {
   }),
   APPLY_BLUEPRINT: (state, action) => handleHydrateBlueprint(state, action.payload),
   HYDRATE_BLUEPRINT: (state, action) => handleHydrateBlueprint(state, action.payload),
-  UPDATE_BUDGET_CATEGORIES: (state, action) => ({
-    ...state,
-    budgetCategories: action.payload,
-    lastUpdated: new Date().toISOString(),
-  }),
-  ADD_BUDGET_ITEM: (state, action) => ({
-    ...state,
-    budgetCategories: [...state.budgetCategories, action.payload],
-    lastUpdated: new Date().toISOString(),
-  }),
+  UPDATE_BUDGET_CATEGORIES: (state, action) => ({ ...state, budgetCategories: action.payload, lastUpdated: new Date().toISOString() }),
+  ADD_BUDGET_ITEM: (state, action) => ({ ...state, budgetCategories: [...state.budgetCategories, action.payload], lastUpdated: new Date().toISOString() }),
   UPDATE_ACTUAL_COST: (state, action) => ({
     ...state,
     budgetCategories: state.budgetCategories.map((item) =>
@@ -129,11 +108,7 @@ const ACTION_HANDLERS: ActionHandlerMap = {
     config: { ...state.config, totalBudget: roundToDollar(clampNumber(action.payload, 0, MAX_BUDGET_LIMIT)) },
     lastUpdated: new Date().toISOString(),
   }),
-  UPDATE_COUNTDOWN: (state, action) => ({
-    ...state,
-    countdownTasks: action.payload,
-    lastUpdated: new Date().toISOString(),
-  }),
+  UPDATE_COUNTDOWN: (state, action) => ({ ...state, countdownTasks: action.payload, lastUpdated: new Date().toISOString() }),
   TOGGLE_TIMELINE_TASK: (state, action) => ({
     ...state,
     countdownTasks: state.countdownTasks.map((task) =>
@@ -141,43 +116,24 @@ const ACTION_HANDLERS: ActionHandlerMap = {
     ),
     lastUpdated: new Date().toISOString(),
   }),
-  UPDATE_ITINERARY: (state, action) => ({
-    ...state,
-    itinerary: action.payload,
-    lastUpdated: new Date().toISOString(),
-  }),
-  UPDATE_VENDORS: (state, action) => ({
-    ...state,
-    vendors: action.payload,
-    lastUpdated: new Date().toISOString(),
-  }),
+  UPDATE_ITINERARY: (state, action) => ({ ...state, itinerary: action.payload, lastUpdated: new Date().toISOString() }),
+  UPDATE_VENDORS: (state, action) => ({ ...state, vendors: action.payload, lastUpdated: new Date().toISOString() }),
   UPDATE_VENDOR_STATUS: (state, action) => ({
     ...state,
-    vendors: state.vendors.map((v) =>
-      v.id === action.payload.id ? { ...v, bookingStatus: action.payload.bookingStatus } : v
-    ),
+    vendors: state.vendors.map((v) => (v.id === action.payload.id ? { ...v, bookingStatus: action.payload.bookingStatus } : v)),
     lastUpdated: new Date().toISOString(),
   }),
-  APPEND_CHAT_MESSAGE: (state, action) => ({
-    ...state,
-    chatHistory: [...state.chatHistory, action.payload],
-    lastUpdated: new Date().toISOString(),
-  }),
+  APPEND_CHAT_MESSAGE: (state, action) => ({ ...state, chatHistory: [...state.chatHistory, action.payload], lastUpdated: new Date().toISOString() }),
   HYDRATE_STATE: (_state, action) => action.payload,
 };
 
-/**
- * @description Pure lookup-driven reducer managing all `EventPlanState` transitions with cyclomatic complexity <= 2.
- * @param {EventPlanState} state - Current immutable `EventPlanState`
- * @param {EventAction} action - Dispatched discriminated union `EventAction`
- * @returns {EventPlanState} Next immutable `EventPlanState`
- */
+/** @description Pure lookup-driven reducer managing all `EventPlanState` transitions with cyclomatic complexity <= 2. */
 export function eventReducer(state: EventPlanState, action: EventAction): EventPlanState {
   const handler = ACTION_HANDLERS[action.type] as (s: EventPlanState, a: EventAction) => EventPlanState;
   return handler ? handler(state, action) : state;
 }
 
-/** Strictly typed action creators for `eventReducer`. */
+/** @description Strictly typed action creators for `eventReducer`. */
 export const EventActions = {
   updateConfig: (payload: EventConfig): EventAction => ({ type: 'UPDATE_CONFIG', payload }),
   switchPreset: (payload: EventType): EventAction => ({ type: 'SWITCH_PRESET', payload }),

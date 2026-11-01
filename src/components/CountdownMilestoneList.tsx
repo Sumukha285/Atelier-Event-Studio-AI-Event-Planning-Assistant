@@ -68,6 +68,7 @@ const TaskRow = React.memo(function TaskRow({
         <label htmlFor={`task-status-${task.id}`} className="sr-only">Status for {task.title}</label>
         <select
           id={`task-status-${task.id}`}
+          data-testid={`timeline-status-select-${index}`}
           value={task.status}
           aria-invalid={false}
           aria-describedby={`task-desc-${task.id}`}
@@ -76,7 +77,13 @@ const TaskRow = React.memo(function TaskRow({
         >
           {TASK_STATUS_OPTIONS.map((st) => <option key={st} value={st}>{st}</option>)}
         </select>
-        <button type="button" onClick={handleDelete} aria-label={`Delete ${task.title}`} className="p-1 text-slate-500 hover:text-rose-600 cursor-pointer">
+        <button
+          type="button"
+          data-testid={`timeline-delete-btn-${index}`}
+          onClick={handleDelete}
+          aria-label={`Delete ${task.title}`}
+          className="p-1 text-slate-500 hover:text-rose-600 cursor-pointer"
+        >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>

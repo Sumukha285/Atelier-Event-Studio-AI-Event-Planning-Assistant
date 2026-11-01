@@ -35,12 +35,7 @@ const MS_PER_DAY = 86400000;
 const HASH_SEED = 5381;
 const HASH_MULTIPLIER = 33;
 
-/**
- * @description Strips HTML tags, script protocols, and ASCII control characters from untrusted input.
- * @param {unknown} input - Raw user input string or unknown value
- * @param {number} [maxLength=MAX_TEXT_LENGTH] - Maximum character length to retain
- * @returns {string} Sanitized plain-text string
- */
+/** @description Strips HTML tags, script protocols, and ASCII control characters from untrusted input. */
 export function sanitizeText(input: unknown, maxLength: number = MAX_TEXT_LENGTH): string {
   if (typeof input !== 'string') return '';
   return input
@@ -53,24 +48,14 @@ export function sanitizeText(input: unknown, maxLength: number = MAX_TEXT_LENGTH
     .slice(0, maxLength);
 }
 
-/**
- * @description Clamps a numeric value within `[min, max]`, guarding against NaN, Infinity, and out-of-range inputs.
- * @param {unknown} val - Candidate numeric value
- * @param {number} min - Minimum allowed bound
- * @param {number} max - Maximum allowed bound
- * @returns {number} Clamped finite number
- */
+/** @description Clamps a numeric value within `[min, max]`, guarding against NaN, Infinity, and out-of-range inputs. */
 export function clampNumber(val: unknown, min: number, max: number): number {
   const parsed = typeof val === 'number' ? val : Number(val);
   if (!Number.isFinite(parsed)) return Math.max(0, min);
   return Math.min(max, Math.max(min, parsed));
 }
 
-/**
- * @description Performs integer-cent rounding (`Math.round(amount * 100) / 100`) to prevent IEEE 754 floating-point drift.
- * @param {number} amount - Monetary value in currency units
- * @returns {number} Cent-accurate monetary value
- */
+/** @description Performs integer-cent rounding (`Math.round(amount * 100) / 100`) to prevent IEEE 754 floating-point drift. */
 export function toSafeCurrencyCents(amount: number): number {
   if (!Number.isFinite(amount) || amount < 0) return 0;
   return Math.round(amount * CENTS_MULTIPLIER) / CENTS_MULTIPLIER;
@@ -78,21 +63,12 @@ export function toSafeCurrencyCents(amount: number): number {
 
 export const roundToCents = toSafeCurrencyCents;
 
-/**
- * @description Rounds a monetary value to the nearest whole currency integer using safe cent arithmetic.
- * @param {number} amount - Monetary value
- * @returns {number} Whole-dollar integer amount
- */
+/** @description Rounds a monetary value to the nearest whole currency integer using safe cent arithmetic. */
 export function roundToDollar(amount: number): number {
   return Math.round(toSafeCurrencyCents(amount));
 }
 
-/**
- * @description Wraps user-supplied text inside an XML sandbox tag and escapes delimiters to mitigate prompt injection.
- * @param {string} tag - Alphanumeric XML tag name
- * @param {string} content - Untrusted user content to enclose
- * @returns {string} XML-sandboxed string
- */
+/** @description Wraps user-supplied text inside an XML sandbox tag and escapes delimiters to mitigate prompt injection. */
 export function wrapUserPromptXml(tag: string, content: string): string {
   const safeTag = tag.replace(/[^a-zA-Z0-9_]/g, '') || 'user_input';
   const escaped = sanitizeText(content, MAX_NOTES_LENGTH)
@@ -104,21 +80,13 @@ export function wrapUserPromptXml(tag: string, content: string): string {
 
 export const wrapXmlSandbox = wrapUserPromptXml;
 
-/**
- * @description Resolves any `EventType` code or label to its canonical display label.
- * @param {unknown} value - Candidate event type
- * @returns {EventTypeLabel} Canonical event type label
- */
+/** @description Resolves any `EventType` code or label to its canonical display label. */
 export function resolveEventTypeLabel(value: unknown): EventTypeLabel {
   const key = String(value ?? 'Wedding') as keyof typeof EVENT_TYPE_CODE_TO_LABEL;
   return EVENT_TYPE_CODE_TO_LABEL[key] ?? 'Wedding';
 }
 
-/**
- * @description Sanitizes and clamps all fields of an `EventConfig` object.
- * @param {EventConfig} config - Raw event configuration
- * @returns {EventConfig} Sanitized and clamped `EventConfig`
- */
+/** @description Sanitizes and clamps all fields of an `EventConfig` object. */
 export function sanitizeEventConfig(config: EventConfig): EventConfig {
   const eventType = resolveEventTypeLabel(config.eventType);
   const setting: SettingType = SETTING_TYPES.includes(config.setting) ? config.setting : 'Outdoor';
@@ -138,11 +106,7 @@ export function sanitizeEventConfig(config: EventConfig): EventConfig {
   };
 }
 
-/**
- * @description Builds a compact XML-sandboxed prompt context string for Gemini API calls.
- * @param {EventConfig} config - Event configuration
- * @returns {string} XML-delimited context block
- */
+/** @description Builds a compact XML-sandboxed prompt context string for Gemini API calls. */
 export function buildCompactPromptContext(config: EventConfig): string {
   const safe = sanitizeEventConfig(config);
   return [
@@ -156,12 +120,7 @@ export function buildCompactPromptContext(config: EventConfig): string {
   ].join('\n');
 }
 
-/**
- * @description Computes a deterministic O(1) cache key hash for an API endpoint and request payload.
- * @param {string} endpoint - API route path
- * @param {unknown} payload - Serializable request body
- * @returns {string} Deterministic string hash key
- */
+/** @description Computes a deterministic O(1) cache key hash for an API endpoint and request payload. */
 export function computeRequestHash(endpoint: string, payload: unknown): string {
   const serialized = `${endpoint}:${JSON.stringify(payload)}`;
   let hash = HASH_SEED;
@@ -171,15 +130,9 @@ export function computeRequestHash(endpoint: string, payload: unknown): string {
   return `${endpoint}#${(hash >>> 0).toString(16)}`;
 }
 
-/**
- * @description Validates and hydrates raw parsed JSON from `localStorage` into a safe `EventPlanState`.
- * @param {unknown} raw - Unknown parsed value from storage
- * @returns {EventPlanState | null} Validated `EventPlanState` or `null` if schema validation fails
- */
+/** @description Validates and hydrates raw parsed JSON from `localStorage` into a safe `EventPlanState`. */
 export function validateAndHydrateState(raw: unknown): EventPlanState | null {
-  if (!isRecordObject(raw) || !isRecordObject(raw.config) || !isValidBlueprint(raw)) {
-    return null;
-  }
+  if (!isRecordObject(raw) || !isRecordObject(raw.config) || !isValidBlueprint(raw)) return null;
   return {
     config: sanitizeEventConfig(raw.config as unknown as EventConfig),
     concepts: raw.concepts,

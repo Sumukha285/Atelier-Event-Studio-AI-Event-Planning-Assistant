@@ -4,41 +4,17 @@
  */
 
 export type EventTypeCode = 'WEDDING' | 'BIRTHDAY' | 'COMMUNITY';
-
 export type EventTypeLabel = 'Wedding' | 'Birthday' | 'Community Event';
-
 export type EventType = EventTypeLabel | EventTypeCode;
-
 export type SettingType = 'Indoor' | 'Outdoor' | 'Hybrid / City';
-
 export type TaskStatus = 'Pending' | 'In Progress' | 'Completed';
-
 export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD';
-
-export type MilestoneWindow =
-  | '6 Months Out'
-  | '3 Months Out'
-  | '1 Month Out'
-  | '1 Week Out'
-  | '1 Day Before';
-
-export type CoreBudgetCategoryName =
-  | 'Venue'
-  | 'Catering'
-  | 'Decor'
-  | 'Entertainment'
-  | 'Photography'
-  | 'Logistics'
-  | 'Contingency';
-
+export type MilestoneWindow = '6 Months Out' | '3 Months Out' | '1 Month Out' | '1 Week Out' | '1 Day Before';
+export type CoreBudgetCategoryName = 'Venue' | 'Catering' | 'Decor' | 'Entertainment' | 'Photography' | 'Logistics' | 'Contingency';
 export type BudgetCategoryName = CoreBudgetCategoryName | string;
-
 export type VendorBookingStatus = 'Researching' | 'Contacted' | 'Booked' | 'Paid';
-
 export type VendorPriority = 'Essential' | 'Recommended' | 'Optional';
-
 export type BudgetHealthLabel = 'Under Budget' | 'Near Limit' | 'Over Budget' | 'Unspent';
-
 export type ActiveView = 'setup' | 'budget' | 'timeline' | 'vendors';
 
 export interface EventConfig {
@@ -54,10 +30,7 @@ export interface EventConfig {
   readonly notes?: string;
 }
 
-export interface ColorSwatch {
-  readonly name: string;
-  readonly hex: string;
-}
+export interface ColorSwatch { readonly name: string; readonly hex: string; }
 
 export interface ConceptPackage {
   readonly id: string;
@@ -79,7 +52,6 @@ export interface BudgetCategoryItem {
   readonly actualSpent: number;
   readonly notes: string;
 }
-
 export type BudgetItem = BudgetCategoryItem;
 
 export interface CountdownTask {
@@ -90,7 +62,6 @@ export interface CountdownTask {
   readonly status: TaskStatus;
   readonly assigneeOrNote: string;
 }
-
 export type TimelineTask = CountdownTask;
 
 export interface ItineraryItem {
@@ -119,12 +90,8 @@ export interface VendorItem {
   readonly eventType?: EventType;
 }
 
-export interface ChatMessage {
-  readonly id: string;
-  readonly role: 'user' | 'assistant';
-  readonly content: string;
-  readonly timestamp: string;
-}
+export interface ChatMessage { readonly id: string; readonly role: 'user' | 'assistant'; readonly content: string; readonly timestamp: string; }
+export interface ValidationResult { readonly valid: boolean; readonly errors: Readonly<Record<string, string>>; }
 
 export interface CompleteBlueprintResponse {
   readonly concepts: readonly ConceptPackage[];
@@ -134,7 +101,6 @@ export interface CompleteBlueprintResponse {
   readonly vendors: readonly VendorItem[];
   readonly source: 'gemini' | 'studio-engine';
 }
-
 export type EventBlueprint = CompleteBlueprintResponse;
 
 export interface EventPlanState {
@@ -149,34 +115,16 @@ export interface EventPlanState {
   readonly lastUpdated: string;
 }
 
-export interface ValidationResult {
-  readonly valid: boolean;
-  readonly errors: Readonly<Record<string, string>>;
-}
-
 export interface BudgetSummary {
-  readonly totalBudget: number;
-  readonly totalEstimated: number;
-  readonly totalActual: number;
-  readonly contingencyReserve: number;
-  readonly unallocatedBudget: number;
-  readonly remainingFromTotal: number;
-  readonly varianceEstimatedVsActual: number;
-  readonly estimatedPercentOfTotal: number;
-  readonly actualPercentOfTotal: number;
-  readonly overBudgetCount: number;
-  readonly nearLimitCount: number;
+  readonly totalBudget: number; readonly totalEstimated: number; readonly totalActual: number;
+  readonly contingencyReserve: number; readonly unallocatedBudget: number; readonly remainingFromTotal: number;
+  readonly varianceEstimatedVsActual: number; readonly estimatedPercentOfTotal: number; readonly actualPercentOfTotal: number;
+  readonly overBudgetCount: number; readonly nearLimitCount: number;
 }
 
 export interface TimelineStats {
-  readonly totalTasks: number;
-  readonly completedCount: number;
-  readonly inProgressCount: number;
-  readonly pendingCount: number;
-  readonly completionPercent: number;
-  readonly itineraryCount: number;
-  readonly itineraryCompletedCount: number;
-  readonly itineraryCompletionPercent: number;
+  readonly totalTasks: number; readonly completedCount: number; readonly inProgressCount: number; readonly pendingCount: number;
+  readonly completionPercent: number; readonly itineraryCount: number; readonly itineraryCompletedCount: number; readonly itineraryCompletionPercent: number;
 }
 
 export type EventAction =
@@ -198,30 +146,14 @@ export type EventAction =
   | { readonly type: 'APPEND_CHAT_MESSAGE'; readonly payload: ChatMessage }
   | { readonly type: 'HYDRATE_STATE'; readonly payload: EventPlanState };
 
-/**
- * @description Checks whether a candidate object is a non-null plain record.
- * @param {unknown} value - Candidate value to inspect
- * @returns {value is Record<string, unknown>} True when value is a non-null object
- */
+/** @description Checks whether a candidate object is a non-null plain record. */
 export function isRecordObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-/**
- * @description Runtime type guard verifying whether untrusted data conforms to `EventBlueprint`.
- * @param {unknown} data - Untrusted payload from API or storage
- * @returns {data is EventBlueprint} True if all required blueprint arrays are present and valid
- */
+/** @description Runtime type guard verifying whether untrusted data conforms to `EventBlueprint`. */
 export function isValidBlueprint(data: unknown): data is EventBlueprint {
   if (!isRecordObject(data)) return false;
-  const hasArrays =
-    Array.isArray(data.concepts) &&
-    Array.isArray(data.budgetCategories) &&
-    Array.isArray(data.countdownTasks) &&
-    Array.isArray(data.itinerary) &&
-    Array.isArray(data.vendors);
-  if (!hasArrays) return false;
-  return (data.budgetCategories as unknown[]).every(
-    (item) => isRecordObject(item) && typeof item.category === 'string' && typeof item.estimatedCost === 'number'
-  );
+  const ok = Array.isArray(data.concepts) && Array.isArray(data.budgetCategories) && Array.isArray(data.countdownTasks) && Array.isArray(data.itinerary) && Array.isArray(data.vendors);
+  return ok && (data.budgetCategories as unknown[]).every((i) => isRecordObject(i) && typeof i.category === 'string' && typeof i.estimatedCost === 'number');
 }

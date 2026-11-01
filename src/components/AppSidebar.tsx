@@ -38,11 +38,7 @@ export interface AppSidebarProps {
   readonly vendorsCount: number;
 }
 
-/**
- * @description Renders the collapsible left navigation sidebar with zero inline arrow functions in loops.
- * @param {AppSidebarProps} props - Navigation state, counts, and view toggle callbacks
- * @returns {React.ReactElement} Memoized Sidebar JSX element
- */
+/** @description Renders the collapsible left navigation sidebar with zero inline arrow functions in loops. */
 export const AppSidebar = React.memo(function AppSidebar({
   activeView,
   isCollapsed,
@@ -109,6 +105,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                 type="button"
                 data-view={item.id}
                 data-testid={`nav-btn-${item.id}`}
+                aria-label={`Navigate to ${item.label}`}
                 onClick={handleNavClick}
                 title={isCollapsed ? item.label : undefined}
                 aria-current={active ? 'page' : undefined}
@@ -125,9 +122,7 @@ export const AppSidebar = React.memo(function AppSidebar({
                     </div>
                   )}
                 </div>
-                {!isCollapsed && (
-                  <span className={`text-[10px] font-mono tabular-nums shrink-0 ${active ? 'text-slate-300' : 'text-slate-600'}`}>{item.badgeText}</span>
-                )}
+                {!isCollapsed && <span className={`text-[10px] font-mono tabular-nums shrink-0 ${active ? 'text-slate-300' : 'text-slate-600'}`}>{item.badgeText}</span>}
               </button>
             );
           })}
@@ -135,11 +130,11 @@ export const AppSidebar = React.memo(function AppSidebar({
       </div>
 
       <div className="p-3 border-t border-slate-200/80 space-y-2">
-        <button type="button" data-testid="sidebar-copilot-btn" onClick={onOpenCoPilot} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-medium hover:bg-slate-50 cursor-pointer">
+        <button type="button" data-testid="sidebar-copilot-btn" aria-label="Open Event Co-Pilot assistant" onClick={onOpenCoPilot} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs font-medium hover:bg-slate-50 cursor-pointer">
           <MessageSquareText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
           {!isCollapsed && <span>Ask Event Co-Pilot</span>}
         </button>
-        <button type="button" data-testid="sidebar-export-btn" onClick={onOpenExport} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-200/70 text-slate-800 text-xs font-medium hover:bg-slate-200 cursor-pointer">
+        <button type="button" data-testid="sidebar-export-btn" aria-label="Open Export Plan dialog" onClick={onOpenExport} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-200/70 text-slate-800 text-xs font-medium hover:bg-slate-200 cursor-pointer">
           <FileDown className="w-3.5 h-3.5 shrink-0" />
           {!isCollapsed && <span>Export Plan (.MD / PDF)</span>}
         </button>

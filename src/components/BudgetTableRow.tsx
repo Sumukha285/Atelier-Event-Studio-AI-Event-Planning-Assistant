@@ -49,10 +49,10 @@ export const BudgetTableRow = React.memo(function BudgetTableRow({
   const color = CATEGORY_COLORS[item.category] ?? '#334155';
   const slug = item.category.toLowerCase().replace(/\s+/g, '-');
 
-  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => onUpdateNotes(item.id, e.target.value), [item.id, onUpdateNotes]);
-  const handleEstChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => onUpdateAmount(item.id, 'estimatedCost', e.target.value), [item.id, onUpdateAmount]);
-  const handleActChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => onUpdateAmount(item.id, 'actualSpent', e.target.value), [item.id, onUpdateAmount]);
-  const handleDeleteClick = useCallback(() => onDelete(item.id), [item.id, onDelete]);
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => onUpdateNotes(item.id, e.target.value), [item.id, onUpdateNotes]);
+  const handleEstChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => onUpdateAmount(item.id, 'estimatedCost', e.target.value), [item.id, onUpdateAmount]);
+  const handleActChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => onUpdateAmount(item.id, 'actualSpent', e.target.value), [item.id, onUpdateAmount]);
+  const handleDeleteClick = useCallback((): void => onDelete(item.id), [item.id, onDelete]);
 
   return (
     <tr data-testid={`budget-row-${slug}`} className="hover:bg-slate-50/70 transition-colors">
@@ -70,6 +70,7 @@ export const BudgetTableRow = React.memo(function BudgetTableRow({
         <label htmlFor={`notes-${slug}`} className="sr-only">{item.category} scope notes</label>
         <input
           id={`notes-${slug}`}
+          data-testid={`budget-notes-${slug}`}
           type="text"
           value={item.notes}
           aria-invalid={false}
@@ -137,7 +138,13 @@ export const BudgetTableRow = React.memo(function BudgetTableRow({
 
       <td className="px-4 py-3.5 align-top text-right">
         {canDelete && (
-          <button type="button" onClick={handleDeleteClick} aria-label={`Remove ${item.category} category`} className="p-1.5 text-slate-500 hover:text-rose-600 rounded cursor-pointer">
+          <button
+            type="button"
+            data-testid={`budget-delete-${slug}`}
+            onClick={handleDeleteClick}
+            aria-label={`Remove ${item.category} category`}
+            className="p-1.5 text-slate-500 hover:text-rose-600 rounded cursor-pointer"
+          >
             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         )}

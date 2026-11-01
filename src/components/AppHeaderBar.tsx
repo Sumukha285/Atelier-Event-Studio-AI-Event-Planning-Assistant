@@ -43,11 +43,7 @@ const WORKSPACE_TABS: ReadonlyArray<{
   { id: 'vendors', label: 'Vendor & Logistics', icon: ClipboardCheck },
 ];
 
-/**
- * @description Renders the sticky workspace header with event telemetry, WAI-ARIA tablist with Left/Right keyboard navigation, and Diagnostics badge.
- * @param {AppHeaderBarProps} props - Event config, budget summary, active concept, and header callbacks
- * @returns {React.ReactElement} Memoized header bar JSX element
- */
+/** @description Renders the sticky workspace header with event telemetry, WAI-ARIA tablist, and Diagnostics badge. */
 export const AppHeaderBar = React.memo(function AppHeaderBar({
   config,
   budgetSummary,
@@ -81,30 +77,23 @@ export const AppHeaderBar = React.memo(function AppHeaderBar({
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
             <span className="font-mono uppercase tracking-wider font-semibold text-slate-900">{config.eventType}</span>
             <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1 font-mono"><Calendar className="w-3.5 h-3.5 text-slate-500" />{config.date}</span>
+            <span className="inline-flex items-center gap-1 font-mono"><Calendar className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />{config.date}</span>
             <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1 truncate max-w-[260px]"><MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />{config.location}</span>
+            <span className="inline-flex items-center gap-1 truncate max-w-[260px]"><MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />{config.location}</span>
             <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1 font-mono tabular-nums"><Users className="w-3.5 h-3.5 text-slate-500" />{config.guestCount} guests</span>
+            <span className="inline-flex items-center gap-1 font-mono tabular-nums"><Users className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />{config.guestCount} guests</span>
           </div>
           <div className="flex flex-wrap items-baseline gap-3 mt-0.5">
             <h1 className="text-lg font-semibold text-slate-900 tracking-tight truncate">{config.eventName}</h1>
             {activeConcept && (
-              <span className="text-xs text-slate-600 truncate">
-                Active Concept: <strong className="text-slate-800 font-medium">{activeConcept.title}</strong>
-              </span>
+              <span className="text-xs text-slate-600 truncate">Active Concept: <strong className="text-slate-800 font-medium">{activeConcept.title}</strong></span>
             )}
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           {onOpenDiagnostics && (
-            <button
-              type="button"
-              data-testid="diagnostics-badge"
-              onClick={onOpenDiagnostics}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-medium hover:bg-emerald-100 cursor-pointer"
-            >
+            <button type="button" data-testid="diagnostics-badge" aria-label="Open Diagnostics Self-Test Results" onClick={onOpenDiagnostics} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-medium hover:bg-emerald-100 cursor-pointer">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
               <span>Diagnostics / Self-Test Passed (12/12)</span>
             </button>
@@ -120,9 +109,9 @@ export const AppHeaderBar = React.memo(function AppHeaderBar({
               <span data-testid="header-actual-spent" className="font-mono font-semibold text-emerald-700 tabular-nums">{formatCurrency(budgetSummary.totalActual, config.currency)}</span>
             </div>
           </div>
-          <button type="button" data-testid="reset-preset-btn" onClick={onResetPreset} title="Reset current archetype to default preset" className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 text-xs cursor-pointer"><RotateCcw className="w-3.5 h-3.5" /><span className="hidden xl:inline">Reset Preset</span></button>
-          <button type="button" data-testid="header-export-btn" onClick={onOpenExport} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-medium cursor-pointer"><FileDown className="w-3.5 h-3.5" /><span>Export Plan</span></button>
-          <button type="button" data-testid="header-copilot-btn" onClick={onOpenCoPilot} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium cursor-pointer"><MessageSquareText className="w-3.5 h-3.5 text-amber-400" /><span>Ask Event Co-Pilot</span></button>
+          <button type="button" data-testid="reset-preset-btn" aria-label="Reset current archetype to default preset" onClick={onResetPreset} className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 text-xs cursor-pointer"><RotateCcw className="w-3.5 h-3.5" aria-hidden="true" /><span className="hidden xl:inline">Reset Preset</span></button>
+          <button type="button" data-testid="header-export-btn" aria-label="Export Event Plan" onClick={onOpenExport} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 text-xs font-medium cursor-pointer"><FileDown className="w-3.5 h-3.5" aria-hidden="true" /><span>Export Plan</span></button>
+          <button type="button" data-testid="header-copilot-btn" aria-label="Open Event Co-Pilot Assistant" onClick={onOpenCoPilot} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium cursor-pointer"><MessageSquareText className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" /><span>Ask Event Co-Pilot</span></button>
         </div>
       </div>
 
@@ -138,7 +127,8 @@ export const AppHeaderBar = React.memo(function AppHeaderBar({
               role="tab"
               tabIndex={active ? 0 : -1}
               aria-selected={active}
-              aria-controls={`tabpanel-${item.id}`}
+              aria-controls={`panel-${item.id}`}
+              aria-label={item.label}
               data-view={item.id}
               data-testid={`tab-${item.id}`}
               onClick={handleTabClick}

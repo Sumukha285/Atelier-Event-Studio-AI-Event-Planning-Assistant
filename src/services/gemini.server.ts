@@ -11,11 +11,7 @@ import { BUDGET_RESPONSE_SCHEMA, CONCEPTS_RESPONSE_SCHEMA, SECURITY_SYSTEM_GUARD
 
 export { generateBlueprintServer, generateCoPilotServer, getGenAIClient };
 
-/**
- * Generates 3 tailored event concepts via Gemini with deterministic fallback.
- * @param config - Sanitized event configuration
- * @returns Concepts array and source indicator
- */
+/** @description Generates 3 tailored event concepts via Gemini with deterministic fallback. */
 export async function generateBrainstormServer(config: EventConfig): Promise<{
   readonly concepts: ConceptPackage[];
   readonly source: 'gemini' | 'studio-engine';
@@ -27,11 +23,7 @@ export async function generateBrainstormServer(config: EventConfig): Promise<{
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL_ID,
       contents: prompt,
-      config: {
-        systemInstruction: SECURITY_SYSTEM_GUARDRAIL,
-        responseMimeType: 'application/json',
-        responseSchema: CONCEPTS_RESPONSE_SCHEMA,
-      },
+      config: { systemInstruction: SECURITY_SYSTEM_GUARDRAIL, responseMimeType: 'application/json', responseSchema: CONCEPTS_RESPONSE_SCHEMA },
     });
     const parsed = JSON.parse(response.text || '{}') as { concepts?: Array<Omit<ConceptPackage, 'id'>> };
     if (!Array.isArray(parsed.concepts) || parsed.concepts.length === 0) {
@@ -57,29 +49,19 @@ export async function generateBrainstormServer(config: EventConfig): Promise<{
   }
 }
 
-/**
- * Generates an AI budget breakdown across the 7 core categories.
- * @param config - Sanitized event configuration
- * @returns Budget categories and source indicator
- */
+/** @description Generates an AI budget breakdown across the 7 core categories. */
 export async function generateBudgetServer(config: EventConfig): Promise<{
   readonly categories: BudgetCategoryItem[];
   readonly source: 'gemini' | 'studio-engine';
 }> {
   const ai = getGenAIClient();
-  if (!ai) {
-    return { categories: calculateBudgetAllocation(config.totalBudget, config.eventType), source: 'studio-engine' };
-  }
+  if (!ai) return { categories: calculateBudgetAllocation(config.totalBudget, config.eventType), source: 'studio-engine' };
   try {
     const prompt = `Allocate total budget across Venue, Catering, Decor, Entertainment, Photography, Logistics, Contingency:\n<user_event_input>\n${buildCompactPromptContext(config)}\n</user_event_input>`;
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL_ID,
       contents: prompt,
-      config: {
-        systemInstruction: SECURITY_SYSTEM_GUARDRAIL,
-        responseMimeType: 'application/json',
-        responseSchema: BUDGET_RESPONSE_SCHEMA,
-      },
+      config: { systemInstruction: SECURITY_SYSTEM_GUARDRAIL, responseMimeType: 'application/json', responseSchema: BUDGET_RESPONSE_SCHEMA },
     });
     const parsed = JSON.parse(response.text || '{}') as { categories?: Array<Record<string, unknown>> };
     return { categories: normalizeBudgetCategories(parsed.categories ?? [], config), source: 'gemini' };
@@ -88,11 +70,7 @@ export async function generateBudgetServer(config: EventConfig): Promise<{
   }
 }
 
-/**
- * Generates countdown milestones and Day-Of itinerary slots.
- * @param config - Sanitized event configuration
- * @returns Countdown tasks, itinerary, and source indicator
- */
+/** @description Generates countdown milestones and Day-Of itinerary slots. */
 export async function generateTimelineServer(config: EventConfig): Promise<{
   readonly countdownTasks: CountdownTask[];
   readonly itinerary: ItineraryItem[];
@@ -105,11 +83,7 @@ export async function generateTimelineServer(config: EventConfig): Promise<{
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL_ID,
       contents: prompt,
-      config: {
-        systemInstruction: SECURITY_SYSTEM_GUARDRAIL,
-        responseMimeType: 'application/json',
-        responseSchema: TIMELINE_RESPONSE_SCHEMA,
-      },
+      config: { systemInstruction: SECURITY_SYSTEM_GUARDRAIL, responseMimeType: 'application/json', responseSchema: TIMELINE_RESPONSE_SCHEMA },
     });
     const parsed = JSON.parse(response.text || '{}') as {
       countdownTasks?: Array<Record<string, unknown>>;
@@ -146,13 +120,7 @@ export async function generateTimelineServer(config: EventConfig): Promise<{
   }
 }
 
-/**
- * Generates 5 vendor vetting questions and 3 contract red flags.
- * @param config - Sanitized event configuration
- * @param vendorCategory - Target vendor category name
- * @param roleDescription - Target vendor scope
- * @returns Vetting questions, red flags, and source indicator
- */
+/** @description Generates 5 vendor vetting questions and 3 contract red flags. */
 export async function generateVendorVettingServer(
   config: EventConfig,
   vendorCategory: string,
@@ -170,11 +138,7 @@ export async function generateVendorVettingServer(
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL_ID,
       contents: prompt,
-      config: {
-        systemInstruction: SECURITY_SYSTEM_GUARDRAIL,
-        responseMimeType: 'application/json',
-        responseSchema: VENDOR_VETTING_SCHEMA,
-      },
+      config: { systemInstruction: SECURITY_SYSTEM_GUARDRAIL, responseMimeType: 'application/json', responseSchema: VENDOR_VETTING_SCHEMA },
     });
     const parsed = JSON.parse(response.text || '{}') as { vettingQuestions?: string[]; contractRedFlags?: string[] };
     const fb = buildFallbackVendorVetting(config, safeCat);

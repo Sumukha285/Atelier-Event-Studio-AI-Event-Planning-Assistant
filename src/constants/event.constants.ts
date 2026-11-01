@@ -17,28 +17,16 @@ import {
 
 /** Default 10% contingency reserve rate across event budgets. */
 export const CONTINGENCY_RATE = 0.10;
-
-/** Cooldown interval in milliseconds between AI generation calls. */
 export const API_COOLDOWN_MS = 3000;
-
-/** Request timeout in milliseconds for AbortController cancellation. */
 export const API_TIMEOUT_MS = 15000;
-
-/** Debounce interval in milliseconds before persisting state to localStorage. */
 export const DEBOUNCE_PERSIST_MS = 250;
-
-/** Auto-dismiss duration in milliseconds for status notifications. */
 export const TOAST_DISMISS_MS = 5000;
-
-/** LocalStorage key for persisting the event planning state. */
 export const STORAGE_KEY = 'EVENT_PLANNER_STATE_V1';
 
-/** Numeric clamping limits and mathematical constants. */
 export const MIN_BUDGET = 100;
 export const MAX_BUDGET_LIMIT = 100000000;
 export const MAX_BUDGET = MAX_BUDGET_LIMIT;
 export const DEFAULT_BUDGET = 25000;
-
 export const MIN_GUESTS = 1;
 export const MAX_GUESTS = 50000;
 export const DEFAULT_GUESTS = 100;
@@ -56,12 +44,7 @@ export const MAX_NOTES_LENGTH = 400;
 export const MIN_NAME_LENGTH = 2;
 export const MIN_THEME_LENGTH = 3;
 
-export const EVENT_TYPES: readonly EventTypeLabel[] = [
-  'Wedding',
-  'Birthday',
-  'Community Event',
-];
-
+export const EVENT_TYPES: readonly EventTypeLabel[] = ['Wedding', 'Birthday', 'Community Event'];
 export const EVENT_TYPE_CODE_TO_LABEL: Readonly<Record<EventType, EventTypeLabel>> = {
   Wedding: 'Wedding',
   Birthday: 'Birthday',
@@ -71,39 +54,11 @@ export const EVENT_TYPE_CODE_TO_LABEL: Readonly<Record<EventType, EventTypeLabel
   COMMUNITY: 'Community Event',
 };
 
-export const SETTING_TYPES: readonly SettingType[] = [
-  'Indoor',
-  'Outdoor',
-  'Hybrid / City',
-];
-
-export const CURRENCY_CODES: readonly CurrencyCode[] = [
-  'USD',
-  'EUR',
-  'GBP',
-  'CAD',
-  'AUD',
-];
-
-export const TASK_STATUS_OPTIONS: readonly TaskStatus[] = [
-  'Pending',
-  'In Progress',
-  'Completed',
-];
-
-export const VENDOR_BOOKING_STATUSES: readonly VendorBookingStatus[] = [
-  'Researching',
-  'Contacted',
-  'Booked',
-  'Paid',
-];
-
-export const VENDOR_PRIORITIES: readonly VendorPriority[] = [
-  'Essential',
-  'Recommended',
-  'Optional',
-];
-
+export const SETTING_TYPES: readonly SettingType[] = ['Indoor', 'Outdoor', 'Hybrid / City'];
+export const CURRENCY_CODES: readonly CurrencyCode[] = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+export const TASK_STATUS_OPTIONS: readonly TaskStatus[] = ['Pending', 'In Progress', 'Completed'];
+export const VENDOR_BOOKING_STATUSES: readonly VendorBookingStatus[] = ['Researching', 'Contacted', 'Booked', 'Paid'];
+export const VENDOR_PRIORITIES: readonly VendorPriority[] = ['Essential', 'Recommended', 'Optional'];
 export const BUDGET_CATEGORIES: readonly CoreBudgetCategoryName[] = [
   'Venue',
   'Catering',
@@ -113,7 +68,6 @@ export const BUDGET_CATEGORIES: readonly CoreBudgetCategoryName[] = [
   'Logistics',
   'Contingency',
 ];
-
 export const MILESTONE_WINDOWS: readonly MilestoneWindow[] = [
   '6 Months Out',
   '3 Months Out',
@@ -143,33 +97,9 @@ export const CATEGORY_COLORS: Readonly<Record<string, string>> = {
 export const INDUSTRY_STANDARD_WEIGHTS: Readonly<
   Record<EventTypeLabel, Readonly<Record<CoreBudgetCategoryName, number>>>
 > = {
-  Wedding: {
-    Venue: 26,
-    Catering: 28,
-    Decor: 12,
-    Entertainment: 10,
-    Photography: 10,
-    Logistics: 4,
-    Contingency: 10,
-  },
-  Birthday: {
-    Venue: 20,
-    Catering: 32,
-    Decor: 15,
-    Entertainment: 14,
-    Photography: 6,
-    Logistics: 3,
-    Contingency: 10,
-  },
-  'Community Event': {
-    Venue: 18,
-    Catering: 25,
-    Decor: 10,
-    Entertainment: 15,
-    Photography: 6,
-    Logistics: 16,
-    Contingency: 10,
-  },
+  Wedding: { Venue: 26, Catering: 28, Decor: 12, Entertainment: 10, Photography: 10, Logistics: 4, Contingency: 10 },
+  Birthday: { Venue: 20, Catering: 32, Decor: 15, Entertainment: 14, Photography: 6, Logistics: 3, Contingency: 10 },
+  'Community Event': { Venue: 18, Catering: 25, Decor: 10, Entertainment: 15, Photography: 6, Logistics: 16, Contingency: 10 },
 };
 
 export const CATEGORY_DEFAULT_NOTES: Readonly<

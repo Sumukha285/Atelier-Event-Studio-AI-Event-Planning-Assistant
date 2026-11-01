@@ -132,6 +132,7 @@ export const ConceptCard = React.memo(function ConceptCard({
         <button
           type="button"
           data-testid={`select-concept-btn-${index}`}
+          aria-label={`Select concept ${concept.title}`}
           onClick={handleSelectClick}
           className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
             isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'

@@ -33,20 +33,20 @@ export const VendorCard = React.memo(function VendorCard({
   onGenerateQuestions,
   onDelete,
 }: VendorCardProps): React.ReactElement {
-  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>): void => {
     onUpdateField(vendor.id, 'bookingStatus', e.target.value as VendorBookingStatus);
   }, [onUpdateField, vendor.id]);
-  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     onUpdateField(vendor.id, 'vendorName', sanitizeText(e.target.value, 90));
   }, [onUpdateField, vendor.id]);
-  const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     onUpdateField(vendor.id, 'quotedPrice', Math.round(clampNumber(e.target.value, 0, MAX_BUDGET_LIMIT)));
   }, [onUpdateField, vendor.id]);
-  const handleContactChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleContactChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     onUpdateField(vendor.id, 'contactInfo', sanitizeText(e.target.value, 100));
   }, [onUpdateField, vendor.id]);
-  const handleGenerateClick = useCallback(() => onGenerateQuestions(vendor), [onGenerateQuestions, vendor]);
-  const handleDeleteClick = useCallback(() => onDelete(vendor.id), [onDelete, vendor.id]);
+  const handleGenerateClick = useCallback((): void => onGenerateQuestions(vendor), [onGenerateQuestions, vendor]);
+  const handleDeleteClick = useCallback((): void => onDelete(vendor.id), [onDelete, vendor.id]);
 
   return (
     <article data-testid={`vendor-card-${index}`} className="bg-white border border-slate-200/90 rounded-xl p-6 space-y-4">
@@ -69,26 +69,41 @@ export const VendorCard = React.memo(function VendorCard({
           <select id={`vendor-status-${index}`} data-testid={`vendor-status-select-${index}`} value={vendor.bookingStatus} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handleStatusChange} className="px-3 py-1.5 text-xs font-mono rounded-lg border border-slate-300 bg-slate-50 text-slate-900">
             {VENDOR_BOOKING_STATUSES.map((st) => <option key={st} value={st}>Status: {st}</option>)}
           </select>
-          <button type="button" data-testid={`vendor-ai-questions-btn-${index}`} onClick={handleGenerateClick} disabled={isGenerating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 disabled:opacity-60 cursor-pointer">
+          <button
+            type="button"
+            data-testid={`vendor-ai-questions-btn-${index}`}
+            aria-label={`Generate AI vetting questions for ${vendor.category}`}
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 disabled:opacity-60 cursor-pointer"
+          >
             {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 text-amber-400" />}
             <span>{isGenerating ? 'Generating...' : 'AI Questions to Ask'}</span>
           </button>
-          <button type="button" onClick={handleDeleteClick} aria-label={`Delete ${vendor.category}`} className="p-1.5 text-slate-500 hover:text-rose-600 rounded cursor-pointer"><Trash2 className="w-4 h-4" /></button>
+          <button
+            type="button"
+            data-testid={`vendor-delete-btn-${index}`}
+            onClick={handleDeleteClick}
+            aria-label={`Delete ${vendor.category}`}
+            className="p-1.5 text-slate-500 hover:text-rose-600 rounded cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label htmlFor={`vendor-name-${index}`} className="block text-[11px] font-medium text-slate-600 mb-1">Vendor / Company Name</label>
-          <input id={`vendor-name-${index}`} type="text" value={vendor.vendorName} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handleNameChange} placeholder="Assign supplier..." className="w-full px-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-md text-slate-900" />
+          <input id={`vendor-name-${index}`} data-testid={`vendor-name-input-${index}`} type="text" value={vendor.vendorName} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handleNameChange} placeholder="Assign supplier..." className="w-full px-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-md text-slate-900" />
         </div>
         <div>
           <label htmlFor={`vendor-price-${index}`} className="block text-[11px] font-medium text-slate-600 mb-1">Quoted / Contracted Price ({currency})</label>
-          <input id={`vendor-price-${index}`} type="number" min={0} max={MAX_BUDGET_LIMIT} step={100} value={vendor.quotedPrice} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handlePriceChange} className="w-full px-3 py-1.5 text-xs font-mono tabular-nums bg-slate-50/70 border border-slate-200 rounded-md text-slate-900" />
+          <input id={`vendor-price-${index}`} data-testid={`vendor-price-input-${index}`} type="number" min={0} max={MAX_BUDGET_LIMIT} step={100} value={vendor.quotedPrice} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handlePriceChange} className="w-full px-3 py-1.5 text-xs font-mono tabular-nums bg-slate-50/70 border border-slate-200 rounded-md text-slate-900" />
         </div>
         <div>
           <label htmlFor={`vendor-contact-${index}`} className="block text-[11px] font-medium text-slate-600 mb-1">Contact Email / Phone</label>
-          <input id={`vendor-contact-${index}`} type="text" value={vendor.contactInfo} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handleContactChange} placeholder="email@vendor.com" className="w-full px-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-md text-slate-900" />
+          <input id={`vendor-contact-${index}`} data-testid={`vendor-contact-input-${index}`} type="text" value={vendor.contactInfo} aria-invalid={false} aria-describedby={`vendor-desc-${vendor.id}`} onChange={handleContactChange} placeholder="email@vendor.com" className="w-full px-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-md text-slate-900" />
         </div>
       </div>
 
